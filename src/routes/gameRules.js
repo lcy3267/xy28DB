@@ -20,18 +20,11 @@ var responseJSON = function (res, ret) {
     }
 };
 
-
 // 查询所有用户
-router.get('/list',function (req, res, next) {
-    db.query(GameRulesSql.queryAll,null)
-        .then(rows => {
-            console.log(rows)
-            responseJSON(res, {rules: rows});
-        })
-        .catch(err => {
-        });
+router.get('/list',async function (req, res, next) {
+   let rows = await db.query(GameRulesSql.queryAll,null)
+    responseJSON(res, {rules: rows});
 });
-
 
 /* GET users listing. */
 router.get('/', function (req, res, next) {

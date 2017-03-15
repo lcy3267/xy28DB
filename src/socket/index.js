@@ -1,10 +1,9 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-
-var userSQL = require('../db/sql/userSql');
-// 使用DBConfig.js的配置信息创建一个MySQL连接池
-var pool = require('../db/pool');
+var db = require('../db/pool');
+let request = require('request');
+import loadLotteryRecord from '../common/loadLotteryRecord';
 
 app.get('/', function(req, res){
     res.send('<h1>Welcome Realtime Server</h1>');
@@ -14,6 +13,8 @@ app.get('/', function(req, res){
 var onlineUsers = {};
 //当前在线人数
 var onlineCount = 0;
+
+var lotteryRs = null;
 
 function loadMassage() {
     setInterval(function () {
@@ -29,6 +30,12 @@ function loadMassage() {
 
 io.on('connection', function(socket){
     console.log('a user connected');
+    
+    if(!lotteryRs){
+        loadLotteryRecord((arr)=>{
+            lotteryRs = arr;
+        })
+    }
 
     //监听新用户加入
     socket.on('login', function(obj){
@@ -43,18 +50,8 @@ io.on('connection', function(socket){
         }
 
         //向所有客户端广播用户加入
-        io.emit('login', {onlineUsers:onlineUsers, onlineCount:onlineCount, user:obj});
+        io.emit('login', {onlineUsers:onlineUsers, onlineCount:onlineCount, user:obj,lotteryRs: lotteryRs});
         console.log(obj.username+'加入了聊天室');
-
-        console.log('>>>>>定时器');
-        //loadMassage();
-        // 从连接池获取连接
-        pool.getConnection(function (err, connection) {
-            connection.query(userSQL.insert, [obj.userid, obj.username], function (err, result) {
-                console.log(result);
-                connection.release();
-            });
-        });
 
     });
 
