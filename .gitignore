@@ -1,6 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 .gitignore
 .idea/
-lib/public/images/
-lib/public/javascripts/
 node_modules
+lib/*
+.babelrc
+npm-debug.log
