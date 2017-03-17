@@ -17,11 +17,34 @@ var responseJSON = function (res, ret) {
 
 // 添加用户
 router.post('/register', async (req, res, next) => {
-    let rows = await db.query(userSQL.insert,[req.body.account,req.body.password])
+    let rows = await db.query(userSQL.insert,[req.body.account,req.body.password]);
     responseJSON(res, {
         err_code: 0,
         user_id: rows.insertId
     });
+});
+
+// 添加用户
+router.post('/login', async (req, res, next) => {
+    let rows = await db.query(userSQL.userLogin,[req.body.account]);
+    let rs = null;
+    if(rows.length == 0){
+        rs = {
+            err_code: -1,
+            msg: 'account not found'
+        }
+    }else if(req.body.password == rows[0].password){
+        rs = {
+            err_code: 0,
+            user: rows[0]
+        }
+    }else{
+        rs = {
+            err_code: -2,
+            msg: 'password error'
+        }
+    }
+    responseJSON(res, rs);
 });
 
 // 查询所有用户

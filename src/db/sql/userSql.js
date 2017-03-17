@@ -4,6 +4,6 @@
 var UserSQL = {
     insert:'INSERT INTO users(account,password) VALUES(?,?)',
     queryAll:'SELECT * FROM users',
-    getUserById:'SELECT * FROM users WHERE uid = ? ',
+    userLogin:'SELECT * FROM users WHERE account = ?',
 };
 module.exports = UserSQL;
