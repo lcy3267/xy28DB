@@ -3,6 +3,8 @@ import userSQL from '../db/sql/userSql';
 const router = express.Router();
 // 使用DBConfig.js的配置信息创建一个MySQL连接池
 import db from '../db/pool';
+import loadLotteryRecord from '../common/loadLotteryRecord';
+
 
 // 响应一个JSON数据
 var responseJSON = function (res, ret) {
@@ -17,10 +19,11 @@ var responseJSON = function (res, ret) {
 
 // 添加用户
 router.post('/register', async (req, res, next) => {
-    let rows = await db.query(userSQL.insert,[req.body.account,req.body.password]);
+    let rows = await db.query(userSQL.insert,[req.body.account,req.body.password,req.body.account]);
+    let users = await db.query(userSQL.queryUserById,[rows.insertId]);
     responseJSON(res, {
         err_code: 0,
-        user_id: rows.insertId
+        user: users[0]
     });
 });
 
@@ -49,8 +52,9 @@ router.post('/login', async (req, res, next) => {
 
 // 查询所有用户
 router.get('/getUsers',async (req, res, next) => {
-    let rows = await db.query(userSQL.queryAll,null);
-    responseJSON(res, rows);
+    loadLotteryRecord((rs)=>{
+        responseJSON(res, rs);
+    })
 });
 
 /* GET users listing. */
