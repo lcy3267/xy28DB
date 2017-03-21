@@ -14,8 +14,8 @@ String.prototype.getLast = function(){
   return this.substr(len-1,1);
 }
 
-export default (callback) => {
-  if(lottery == 1){
+export default (type,callback) => {
+  if(type == 1){
     const bjHost = 'http://123.168kai.com/Open/CurrentOpenOne?code=10014&_=0.06803648965035364';
     request(bjHost, function (error, response, body) {
       if (!error && response.statusCode == 200) {

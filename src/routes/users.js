@@ -5,7 +5,6 @@ const router = express.Router();
 import db from '../db/pool';
 import loadLotteryRecord from '../common/loadLotteryRecord';
 
-
 // 响应一个JSON数据
 var responseJSON = function (res, ret) {
     if (typeof ret === 'undefined') {

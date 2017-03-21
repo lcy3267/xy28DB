@@ -17,17 +17,8 @@ var onlineCount = 0;
 
 var lotteryRs = null;
 
-function loadMassage() {
-    setInterval(function () {
-        var obj = {
-            userid: "110",
-            username: "假远",
-            content: "say hello"
-        };
-        io.emit('message', obj);
-        console.log(obj.username+'说：'+obj.content);
-    },3000);
-}
+// 房间用户名单
+let roomInfo = {};
 
 io.on('connection', function(socket){
     console.log('a user connected');
@@ -35,41 +26,41 @@ io.on('connection', function(socket){
     //监听新用户加入
     socket.on('login', async (data)=>{
         //将新加入用户的唯一标识当作socket的名称，后面退出的时候会用到
-        let {user} = data;
+        let {user,roomId} = data;
         socket.user_id = user.user_id;
+        socket.roomId = roomId;
 
-        //检查在线列表，如果不在里面就加入
-        if(!onlineUsers.hasOwnProperty(user.user_id)) {
-            onlineUsers[user.user_id] = user;
-            //在线人数+1
-            onlineCount++;
+        if (!roomInfo[roomId]) {
+            roomInfo[roomId] = {};
         }
-        if(!lotteryRs){
-            loadLotteryRecord((betResult)=>{
-                //向所有客户端广播用户加入
-                io.emit('login', {onlineUsers: onlineUsers, onlineCount:onlineCount, joinUser:user, lotteryRs: betResult});
-                console.log(user.name+'加入了聊天室');
-            })
-        }else{
+
+        roomInfo[roomId][user.user_id] = user;
+
+        console.log(roomInfo);
+
+        socket.join(roomId);    // 加入房间
+
+        loadLotteryRecord(1,(betResult)=>{
             //向所有客户端广播用户加入
-            io.emit('login', {onlineUsers: onlineUsers, onlineCount:onlineCount, joinUser:user, lotteryRs: lotteryRs});
-            console.log(user.name+'加入了聊天室');
-        }
+            io.to(roomId).emit('login', {joinUser:user, lotteryRs: betResult});
+            console.log(user.name+'加入了聊天室:'+roomId);
+        })
+
     });
 
     //监听用户退出
     socket.on('disconnect', function(){
-        //将退出的用户从在线列表中删除
-        if(onlineUsers.hasOwnProperty(socket.user_id)) {
-            //退出用户的信息
-            let loginOutUser = onlineUsers[socket.user_id];
-            //删除
-            delete onlineUsers[socket.user_id];
-            //在线人数-1
-            onlineCount--;
-            //向所有客户端广播用户退出
-            io.emit('logout', {onlineUsers:onlineUsers, onlineCount:onlineCount, user:loginOutUser});
-            console.log(loginOutUser.name+'退出了聊天室');
+        // 从房间名单中移除
+        let room = roomInfo[socket.roomId];
+        var loginOutUser = room && room[socket.user_id];
+        if (loginOutUser) {
+            delete roomInfo[socket.roomId][socket.user_id];
+
+            socket.leave(socket.roomId);    // 退出房间
+
+            io.to(socket.roomId).emit('logout', {user: loginOutUser});
+
+            console.log(loginOutUser.name+'退出了聊天室:'+socket.roomId);
         }
     });
 
@@ -80,7 +71,7 @@ io.on('connection', function(socket){
         let dbRs = await db.query(bottomPourSql.insert,params);
         if(dbRs){
             //向所有客户端广播发布的消息
-            io.emit('bet', bet);
+            io.to(socket.roomId).emit('bet', bet);
             console.log(bet.user.name+'下注：'+bet.money,'下注类型:'+bet.type);
         }
     });
