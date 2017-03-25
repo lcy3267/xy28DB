@@ -1,17 +1,17 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-var db = require('../db/pool');
+import {dbQuery,myTransaction} from '../db/index';
 let request = require('request');
-import loadLotteryRecord from '../common/loadLotteryRecord';
-import bottomPourSql from '../db/sql/bottomPourSql'
+import {loadLotteryRecord} from '../common/lotteryUtil';
+import bottomPourSql from '../db/sql/bottomPourSql';
+import {integralChangeSql} from '../db/sql';
+import {changeType} from '../config/index';
 
 app.get('/', function(req, res){
     res.send('<h1>Welcome Realtime Server</h1>');
 });
 
-//在线用户
-var onlineUsers = {};
 //当前在线人数
 var onlineCount = 0;
 
@@ -36,16 +36,12 @@ io.on('connection', function(socket){
 
         roomInfo[roomId][user.user_id] = user;
 
-        console.log(roomInfo);
-
         socket.join(roomId);    // 加入房间
 
-        loadLotteryRecord(1,(betResult)=>{
-            //向所有客户端广播用户加入
-            io.to(roomId).emit('login', {joinUser:user, lotteryRs: betResult});
-            console.log(user.name+'加入了聊天室:'+roomId);
-        })
+        let betResult = await loadLotteryRecord(2);
 
+        io.to(roomId).emit('login', {joinUser:user, lotteryRs: betResult});
+        console.log(user.name+'加入了聊天室:'+roomId);
     });
 
     //监听用户退出
@@ -67,9 +63,27 @@ io.on('connection', function(socket){
     //监听用户下注
     socket.on('bet', async (bet)=>{
         let {user,money,type,number,serial_number} = bet;
-        let params = [user.user_id,money,type,number,serial_number,1];
-        let dbRs = await db.query(bottomPourSql.insert,params);
-        if(dbRs){
+        //let dbRs = await dbQuery(bottomPourSql.insert,params);
+
+        let rs = await myTransaction([
+            {//下注
+                sql: bottomPourSql.insert,
+                params: [user.user_id,money,type,number,serial_number,1]
+            },
+            {//用户减分
+                sql: "update users set integral = (integral - ?) where user_id = ?",
+                params: [money,user.user_id]
+            },
+            {//增加用户积分变化记录
+                sql: integralChangeSql.insert,
+                params: [user.user_id,money,changeType.xz],
+            }
+        ]);
+
+        console.log('>>>');
+        console.log(rs);
+
+        if(rs){
             //向所有客户端广播发布的消息
             io.to(socket.roomId).emit('bet', bet);
             console.log(bet.user.name+'下注：'+bet.money,'下注类型:'+bet.type);

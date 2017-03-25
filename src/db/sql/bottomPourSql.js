@@ -6,6 +6,7 @@
  */
 var bottomPourSql = {
     insert:'INSERT INTO bottom_pour_record(user_id,bottom_pour_money,bottom_pour_type,bottom_pour_number,serial_number,lottery_place_type) VALUES(?,?,?,?,?,?)',
-    queryAll:'SELECT * FROM bottom_pour_record WHERE state != -1 and lottery_place_type=1',
+    queryAll:'SELECT * FROM bottom_pour_record WHERE status != -1',
+    querySerialRecord:'select * from bottom_pour_record WHERE status != -1 and is_winning = 0 and serial_number = ?',
 };
 module.exports = bottomPourSql;

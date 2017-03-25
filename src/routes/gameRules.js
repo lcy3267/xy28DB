@@ -6,7 +6,7 @@ var router = express.Router();
 var GameRulesSql = require('../db/sql/GameRulesSql');
 
 // 使用DBConfig.js的配置信息创建一个MySQL连接池
-var db = require('../db/pool');
+var {dbQuery} = require('../db/index');
 
 // 响应一个JSON数据
 var responseJSON = function (res, ret) {
@@ -20,9 +20,9 @@ var responseJSON = function (res, ret) {
     }
 };
 
-// 查询所有用户
+//查询游戏玩法
 router.get('/list',async function (req, res, next) {
-   let rows = await db.query(GameRulesSql.queryAll,null)
+   let rows = await dbQuery(GameRulesSql.queryAll);
     responseJSON(res, {rules: rows});
 });
 
