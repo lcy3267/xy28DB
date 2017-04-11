@@ -40,7 +40,9 @@ io.on('connection', function(socket){
 
         let betResult = await loadLotteryRecord(2);
 
-        io.to(roomId).emit('login', {joinUser:user, lotteryRs: betResult});
+        let integralRs = await dbQuery("select integral from users where user_id = ?",[user.user_id]);
+
+        io.to(roomId).emit('login', {joinUser:user, lotteryRs: betResult, integral: integralRs[0].integral});
         console.log(user.name+'加入了聊天室:'+roomId);
     });
 
@@ -64,11 +66,10 @@ io.on('connection', function(socket){
     socket.on('bet', async (bet)=>{
         let {user,money,type,number,serial_number} = bet;
         //let dbRs = await dbQuery(bottomPourSql.insert,params);
-
         let rs = await myTransaction([
             {//下注
                 sql: bottomPourSql.insert,
-                params: [user.user_id,money,type,number,serial_number,1]
+                params: [user.user_id,money,type,number,serial_number,socket.roomId,1]
             },
             {//用户减分
                 sql: "update users set integral = (integral - ?) where user_id = ?",
@@ -79,9 +80,6 @@ io.on('connection', function(socket){
                 params: [user.user_id,money,changeType.xz],
             }
         ]);
-
-        console.log('>>>');
-        console.log(rs);
 
         if(rs){
             //向所有客户端广播发布的消息

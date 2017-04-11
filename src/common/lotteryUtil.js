@@ -20,6 +20,7 @@ let myRequest = async (path) => {
       })
       .catch(function (err) {
         console.log('抓取数据出错:'+err);
+        return {err_code: -200};
       });
 }
 
@@ -27,9 +28,14 @@ let myRequest = async (path) => {
 export let loadLotteryRecord = async (type) => {
   if (type == 1) {
     let rs = await myRequest(openResultHost.china);
+    if(!rs){
+      return loadLotteryRecord(type);
+    }
+
     let result = rs.c_r.split(',');
     result.pop();
     result = result.sort((a, b)=>a - b);
+    //bj开奖规则
     let one = (+result.slice(0, 6).getSum()) % 10,
         two = (+result.slice(6, 12).getSum()) % 10,
         third = (+result.slice(12, 18).getSum()) % 10,
@@ -50,8 +56,12 @@ export let loadLotteryRecord = async (type) => {
 
     return obj;
   } else {
+    //cnd 开奖规则
     const numbers = [[2, 5, 8, 11, 14, 17], [3, 6, 9, 12, 15, 18], [4, 7, 10, 13, 16, 19]];
     let rs = await myRequest(openResultHost.cnd);
+    if(!rs){
+      return loadLotteryRecord(type);
+    }
     let result = rs.c_r.split(',');
     result = result.sort((a, b)=>a - b);
     let one = 0, two = 0, third = 0;
@@ -91,12 +101,11 @@ export let loadLotteryRecord = async (type) => {
 }
 
 //积分结算
-export let clearingIntegral = async (placeType=1) => {
+export let clearingIntegral = async (placeType = 1) => {
   //开奖结果
-  let result = await loadLotteryRecord(2);
+  let result = await loadLotteryRecord(placeType);
   //获取当前期数下注记录
   let records = await dbQuery(bottomPourSql.querySerialRecord,result.serial_number);
-  //let records = await dbQuery(bottomPourSql.queryAll);
   //游戏规则 赔率
   let game_rules = await dbQuery(gameRulesSql.queryAll);
 
