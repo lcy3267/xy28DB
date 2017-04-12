@@ -149,7 +149,8 @@ export let clearingIntegral = async (placeType = 1) => {
   //@todo 添加开奖记录;
   //await dbQuery();
 
-  return {err_code: 0,record_number: records.length}
+
+  return {err_code: 0,record_number: records.length, serial_number: result.serial_number}
 }
 
 

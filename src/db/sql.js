@@ -4,3 +4,6 @@
 export let integralChangeSql = {
     insert: "insert into user_integral_change(user_id,integral,type) values(?,?,?)"
 }
+export let usersSql = {
+    queryUserIntegral: "select integral from users where user_id = ?"
+}
