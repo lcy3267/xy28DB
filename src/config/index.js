@@ -33,3 +33,7 @@ export let changeType = {
     out: 4,//提现
     hs: 5,//回水
 }
+
+export  let er_codes = {
+    1001: '已经开过将',
+}

@@ -1,4 +1,5 @@
 import rp from 'request-promise';
+import Promise from 'promise-polyfill';
 import {myTransaction,dbQuery} from '../db/index';
 import bottomPourSql from '../db/sql/bottomPourSql';
 import gameRulesSql from '../db/sql/gameRulesSql';
@@ -13,26 +14,46 @@ Array.prototype.getSum = function(){
   return sum;
 }
 
-let myRequest = async (path) => {
-  return rp(path)
-      .then(function (data) {
-        return JSON.parse(data);
+//设置请求的超时时间
+function myPromise(promise) {
+  return new Promise((resolve, reject) => {
+    //成功
+    promise.then(
+        (res) => {
+          resolve(res);
+        },
+        //失败
+        (err) => {
+          reject(err);
+        }
+    );
+  })
+}
+
+let myRequest = (path) => {
+  return myPromise(rp(path))
+      .then((res)=>{
+        return JSON.parse(res)
       })
-      .catch(function (err) {
-        console.log('抓取数据出错:'+err);
-        return {err_code: -200};
+      .catch(function (error) {
+        console.log("请求出错啦");
+        return false;
       });
 }
 
 //获取开奖结果
 export let loadLotteryRecord = async (type) => {
+  let path = type == 2?openResultHost.cnd:openResultHost.china;
+  let openRs = await myRequest(path);
+
+  let obj = {};
   if (type == 1) {
-    let rs = await myRequest(openResultHost.china);
-    if(!rs){
-      return loadLotteryRecord(type);
+    openRs = await myRequest(openResultHost.china);
+    if(!openRs){
+      return await loadLotteryRecord(type);
     }
 
-    let result = rs.c_r.split(',');
+    let result = openRs.c_r.split(',');
     result.pop();
     result = result.sort((a, b)=>a - b);
     //bj开奖规则
@@ -41,8 +62,8 @@ export let loadLotteryRecord = async (type) => {
         third = (+result.slice(12, 18).getSum()) % 10,
         sum = one + two + third;
     // 开奖期数 1 ,2 ,3 ,合, 开奖地点:1北京 2加拿大
-    let obj = {
-      serial_number: rs.c_t,
+    obj = {
+      serial_number: openRs.c_t,
       one,
       two,
       third,
@@ -54,15 +75,14 @@ export let loadLotteryRecord = async (type) => {
     //开奖结果
     obj.result = formatResult(sum);
 
-    return obj;
   } else {
     //cnd 开奖规则
     const numbers = [[2, 5, 8, 11, 14, 17], [3, 6, 9, 12, 15, 18], [4, 7, 10, 13, 16, 19]];
-    let rs = await myRequest(openResultHost.cnd);
-    if(!rs){
-      return loadLotteryRecord(type);
+
+    if(!openRs){
+      return await loadLotteryRecord(type);
     }
-    let result = rs.c_r.split(',');
+    let result = openRs.c_r.split(',');
     result = result.sort((a, b)=>a - b);
     let one = 0, two = 0, third = 0;
     numbers.map((number, i)=> {
@@ -85,8 +105,8 @@ export let loadLotteryRecord = async (type) => {
         third = (+third) % 10;
     let sum = one + two + third;
     // 开奖期数 1 ,2 ,3 ,合, 开奖地点:1北京 2加拿大
-    let obj = {
-      serial_number: rs.c_t,
+    obj = {
+      serial_number: openRs.c_t,
       one,
       two,
       third,
@@ -96,21 +116,53 @@ export let loadLotteryRecord = async (type) => {
     //开奖结果
     obj.result = formatResult(sum);
 
-    return obj;
   }
-}
+  let lottery_record = await dbQuery("select * from lottery_record where lottery_place_type = ? && serial_number = ? order by created_at desc limit 1",[type,obj.serial_number]);
+  obj.err_code = 0;
+  //插入开奖数据
+  if(lottery_record.length == 0){
+    let params = [obj.one,obj.two,obj.third,obj.sum,obj.serial_number,type];
+    await dbQuery("insert into lottery_record(first_number,second_number,third_number,sum_number,serial_number,lottery_place_type) values(?,?,?,?,?,?)",params);
+  }else if(lottery_record[0].is_open == 1){  //已经开过奖
+    obj.err_code = 1001;
+  }
+
+  return obj;
+
+};
 
 //积分结算
 export let clearingIntegral = async (placeType = 1) => {
   //开奖结果
   let result = await loadLotteryRecord(placeType);
+  console.log('----------------')
+  if(result.err_code == 0){
+    clearing.users = [];
+    let rs = await clearing(result);
+    return rs;
+  }else if(result.err_code == 1001){
+    return {
+      err_code: 1001,
+      msg: '该期已经进行过几分结算',
+    }
+  }
+}
+
+//循环结算 用户下注记录 保证全部结算完成
+async function clearing(result) {
   //获取当前期数下注记录
   let records = await dbQuery(bottomPourSql.querySerialRecord,result.serial_number);
+
   //游戏规则 赔率
   let game_rules = await dbQuery(gameRulesSql.queryAll);
 
   //遍历下注记录
   for(var record of records){
+    //添加结算用户
+    if(!clearing.users.includes(record.user_id)){
+      clearing.users.push(record.user_id);
+    };
+
     let hasWinning = false;
     let money = record.bottom_pour_money;
     let bottom_pour_type = record.bottom_pour_type;
@@ -145,17 +197,15 @@ export let clearingIntegral = async (placeType = 1) => {
       await dbQuery("update bottom_pour_record set is_winning = ? where bottom_pour_id = ?",[-1,record.bottom_pour_id]);
     }
   }
-
-  //@todo 添加开奖记录;
-  //await dbQuery();
-
-
-  return {err_code: 0,record_number: records.length, serial_number: result.serial_number}
+  if(records.length != 0){
+    return await clearing(result);
+  }else{
+    await dbQuery("update lottery_record set is_open = 1 where serial_number = ?",[result.serial_number]);
+    return {err_code: 0, serial_number: result.serial_number, clearUsers: clearing.users}
+  }
 }
 
-
 function formatResult(sum) {
-  let typeArr = [];
   let hasMax = lotteryType.max;//大小
   let hasDouble = lotteryType.single; //单双
   let combination = lotteryType.maxS; //组合
