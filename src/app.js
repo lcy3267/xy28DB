@@ -40,6 +40,7 @@ app.use('/', require('./routes/index'));
 app.use('/users', require('./routes/users'));
 app.use('/gameRules', require('./routes/gameRules'));
 app.use('/betRecord', require('./routes/betRecord'));
+app.use('/recharge', require('./routes/recharge'));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

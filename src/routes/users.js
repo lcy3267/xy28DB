@@ -4,10 +4,13 @@ const router = express.Router();
 // 使用DBConfig.js的配置信息创建一个MySQL连接池
 import {dbQuery} from '../db/index';
 import {responseJSON} from '../common/index';
+import {key} from '../config/';
+import { getCnaOpenTime } from '../socket/util';
 
 // 添加用户
 router.post('/register', async (req, res, next) => {
-    let rows = await dbQuery(userSQL.insert,[req.body.account,req.body.password,req.body.account]);
+    let password = md5(req.body.password+key.md5);
+    let rows = await dbQuery(userSQL.insert,[req.body.account,password,req.body.account]);
     let users = await dbQuery(userSQL.queryUserById,[rows.insertId]);
     responseJSON(res, {
         err_code: 0,
@@ -15,9 +18,10 @@ router.post('/register', async (req, res, next) => {
     });
 });
 
-// 添加用户
+// 登录
 router.post('/login', async (req, res, next) => {
-    let rows = await dbQuery(userSQL.userLogin,[req.body.account]);
+    let password = md5(req.body.password+key.md5);
+    let rows = await dbQuery(userSQL.userLogin,[req.body.account, password]);
     let rs = null;
     if(rows.length == 0){
         rs = {
@@ -42,7 +46,7 @@ router.post('/login', async (req, res, next) => {
 
 /* GET users listing. */
 router.get('/', function (req, res, next) {
-    res.send('respond with a resource');
+    res.json({rs: getCnaOpenTime()});
 });
 
 module.exports = router;

@@ -8,9 +8,9 @@ import bottomPourSql from '../db/sql/bottomPourSql';
 import {integralChangeSql, usersSql} from '../db/sql';
 import {changeType} from '../config/index';
 import schedule from 'node-schedule';
+import { getCnaOpenTime } from './util';
 
 app.get('/', function (req, res) {
-    console.log('12312321321')
     res.send('<h1>Welcome Realtime Server</h1>');
 });
 
@@ -22,11 +22,10 @@ var lotteryRs = null;
 // 房间用户名单
 let roomInfo = {};
 
-let opening = false;
-let cycle = null;
+let opening = false;//开奖中
+let cycle = null;//遍历开奖结果
 
 let openResult = (type,callback)=> {
-    console.log('结算积分了-------');
     cycle = setTimeout(async()=> {
         let rs = await clearingIntegral(type);
         if (!rs || rs && rs.err_code == 1001) {
@@ -34,7 +33,7 @@ let openResult = (type,callback)=> {
         } else if (rs.err_code == 0) {
             callback(rs);
         }
-    }, 2000);
+    }, 3000);
 }
 
 //北京开盘 每天9点05分第一期,12点停盘,每300秒一期
@@ -48,30 +47,45 @@ schedule.scheduleJob(rule, ()=> {
     io.emit('openResult', {opening: true});
     openResult();
 });*/
+let cndTime = null;
+let cndTimer = setInterval(()=>{
+    cndTime = getCnaOpenTime();
+    console.log(cndTime);
+    if(cndTime <= 60 && cndTime >= 30){
+        opening = true;
+        io.emit('openResult', {opening});
+    }else{
+        opening = false;
+    }
 
+    if(cndTime == 20){
+        io.emit('openResult', {opening: true});
+        openResult(2,async (rs)=>{
+            if (rs && rs.err_code == 0) {
 
-// 加纳大定时器 每天19~20点停盘,每210秒一期
-schedule.scheduleJob('30 * * * * *', async function () {
-    io.emit('openResult', {opening: true});
-    openResult(2,async (rs)=>{
-        console.log('加拿大开奖结果');
-        console.log(rs);
-        if (rs && rs.err_code == 0) {
-            let integralRs = await dbQuery("select integral from users where user_id = 1");
-            //向所有客户端广播发布的消息
-            io.emit('openResult', {
-                opening: false,
-                integral: integralRs[0].integral,
-                serial_number: rs.serial_number
-            });
-        }
-    });
-});
-//停盘
-schedule.scheduleJob('40 * * * * *', function () {
-    cycle && clearTimeout(cycle);
-    io.emit('openResult', {opening: false});
-});
+                console.log('已开奖-------');
+                console.log(rs);
+
+                let integralRs = await dbQuery("select integral from users where user_id = 1");
+                //向所有客户端广播发布的消息
+                io.emit('openResult', {
+                    integral: integralRs[0].integral,
+                    serial_number: rs.result.serial_number
+                });
+
+                cycle && clearTimeout(cycle);
+            }
+        });
+    }
+
+    /*if(opening && cndTime == 180){
+        console.log('进来清楚了------')
+        io.emit('openResult', {
+            opening: false,
+        });
+    }*/
+},1000);
+
 
 io.on('connection', async(socket)=> {
     console.log('a user connected');
@@ -146,6 +160,7 @@ io.on('connection', async(socket)=> {
     });
 
 });
+
 
 
 http.listen(3001, function () {

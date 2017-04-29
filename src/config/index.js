@@ -1,3 +1,8 @@
+export let key = {
+    md5: 'yuan',
+    token: 'suifengxixihah',
+};
+
 export let mysqlConfig = {
     host: '127.0.0.1',
     user: 'root',

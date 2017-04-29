@@ -14,7 +14,6 @@ Array.prototype.getSum = function(){
   return sum;
 }
 
-//设置请求的超时时间
 function myPromise(promise) {
   return new Promise((resolve, reject) => {
     //成功
@@ -29,7 +28,6 @@ function myPromise(promise) {
     );
   })
 }
-
 let myRequest = (path) => {
   return myPromise(rp(path))
       .then((res)=>{
@@ -46,9 +44,10 @@ export let loadLotteryRecord = async (type) => {
   let path = type == 2?openResultHost.cnd:openResultHost.china;
   let openRs = await myRequest(path);
 
+  console.log(openRs.c_t);
+
   let obj = {};
   if (type == 1) {
-    openRs = await myRequest(openResultHost.china);
     if(!openRs){
       return await loadLotteryRecord(type);
     }
@@ -125,22 +124,27 @@ export let loadLotteryRecord = async (type) => {
     await dbQuery("insert into lottery_record(first_number,second_number,third_number,sum_number,serial_number,lottery_place_type) values(?,?,?,?,?,?)",params);
   }else if(lottery_record[0].is_open == 1){  //已经开过奖
     obj.err_code = 1001;
+  }else if(lottery_record[0].is_open == -1){
+    obj.err_code = 1002; //未结算
   }
 
   return obj;
 
 };
 
-//积分结算
+//循环结算 用户下注记录 保证全部结算完成
 export let clearingIntegral = async (placeType = 1) => {
   //开奖结果
   let result = await loadLotteryRecord(placeType);
-  console.log('----------------')
   if(result.err_code == 0){
     clearing.users = [];
     let rs = await clearing(result);
     return rs;
-  }else if(result.err_code == 1001){
+  }else{
+    if(result.err_code == 1002){//该期未结算 进行结算
+      clearing.users = [];
+      await clearing(result);
+    }
     return {
       err_code: 1001,
       msg: '该期已经进行过几分结算',
@@ -148,7 +152,7 @@ export let clearingIntegral = async (placeType = 1) => {
   }
 }
 
-//循环结算 用户下注记录 保证全部结算完成
+//积分结算
 async function clearing(result) {
   //获取当前期数下注记录
   let records = await dbQuery(bottomPourSql.querySerialRecord,result.serial_number);
@@ -201,7 +205,7 @@ async function clearing(result) {
     return await clearing(result);
   }else{
     await dbQuery("update lottery_record set is_open = 1 where serial_number = ?",[result.serial_number]);
-    return {err_code: 0, serial_number: result.serial_number, clearUsers: clearing.users}
+    return {err_code: 0, result, clearUsers: clearing.users}
   }
 }
 
