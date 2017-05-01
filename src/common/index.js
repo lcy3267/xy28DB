@@ -6,7 +6,9 @@ export let responseJSON = (res, ret) => {
         res.json({
             code: '-200', msg: '操作失败'
         });
-    } else {
+    } else if(ret.err_code){
+        res.json(ret);
+    }else{
         ret.err_code = 0;
         res.json(ret);
     }

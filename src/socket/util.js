@@ -9,8 +9,7 @@ export function  getCnaOpenTime(){
     if(hour >= 21){
         startTime = `${formatDate(today,'yyyy-MM-dd')} 20:57:00`;
     }else{
-        let yesterday = today.getDate() - 1;
-        startTime = `${formatDate(today,'yyyy-MM')}-${yesterday} 20:57:00`;
+        startTime = `${GetDateStr(-1)} 20:57:00`;
     }
 
     let startTimestamp = Date.parse(startTime);
@@ -40,6 +39,14 @@ export function getSecond(){
     return {minute,second};
 }
 
+function GetDateStr(AddDayCount) {
+    var dd = new Date();
+    dd.setDate(dd.getDate()+AddDayCount);//获取AddDayCount天后的日期
+    var y = dd.getFullYear();
+    var m = dd.getMonth()+1;//获取当前月份的日期
+    var d = dd.getDate();
+    return y+"-"+m+"-"+d;
+}
 
 export const formatDate =  (date,fmt) => {
     var o = {

@@ -86,9 +86,25 @@ let cndTimer = setInterval(()=>{
     }*/
 },1000);
 
-
 io.on('connection', async(socket)=> {
     console.log('a user connected');
+
+    const loadRecord = (callback)=>{
+        console.log('========00');
+
+        let aa = setTimeout(async ()=>{
+            console.log('========11');
+
+            let lotteryRs = await loadLotteryRecord(1);
+            console.log('========22',lotteryRs);
+
+            if(lotteryRs){
+                callback && callback(lotteryRs);
+            }else{
+                loadRecord(callback);
+            }
+        },500);
+    }
 
     //监听新用户加入
     socket.on('login', async(data)=> {
@@ -105,16 +121,24 @@ io.on('connection', async(socket)=> {
 
         socket.join(roomId);    // 加入房间
 
-        let betResult = await loadLotteryRecord(2);
-
         let integralRs = await dbQuery(usersSql.queryUserIntegral, [user.user_id]);
 
         io.to(roomId).emit('login', {
-            joinUser: user, lotteryRs: betResult,
-            integral: integralRs[0].integral, opening
+            opening,
+            joinUser: user,
+            integral: integralRs[0].integral,
         });
+
+        loadRecord((lotteryRs)=>{
+            io.to(roomId).emit('login', {
+                lotteryRs,
+                joinUser: user,
+            });
+        });
+
         console.log(user.name + '加入了聊天室:' + roomId);
     });
+
 
     //监听用户退出
     socket.on('disconnect', function () {
@@ -158,7 +182,7 @@ io.on('connection', async(socket)=> {
             console.log(bet.user.name + '下注：' + bet.money, '下注类型:' + bet.type);
         }
     });
-
+    
 });
 
 

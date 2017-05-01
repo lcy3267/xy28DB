@@ -28,10 +28,14 @@ function myPromise(promise) {
     );
   })
 }
-let myRequest = (path) => {
+let myRequest = (path,html = false) => {
   return myPromise(rp(path))
       .then((res)=>{
-        return JSON.parse(res)
+        if(!html){
+          return JSON.parse(res)
+        }else{
+          return res;
+        }
       })
       .catch(function (error) {
         console.log("请求出错啦");
@@ -42,18 +46,24 @@ let myRequest = (path) => {
 //获取开奖结果
 export let loadLotteryRecord = async (type) => {
   let path = type == 2?openResultHost.cnd:openResultHost.china;
-  let openRs = await myRequest(path);
-
-  console.log(openRs.c_t);
-
+  let openRs = await myRequest(path, type == 1);
   let obj = {};
-  if (type == 1) {
+  if (type == 1) {//北京开奖
     if(!openRs){
       return await loadLotteryRecord(type);
     }
 
-    let result = openRs.c_r.split(',');
-    result.pop();
+    const reg = /<tr class="">([\d\D]*)<tr class="odd">/;
+    const tdReg = /<td>(.*)<\/td>/g;
+
+    let string = openRs.match(reg)[1];
+    string = string.match(tdReg);
+
+    const rs = string.map((str)=>{
+      return str.replace(/<td>|<\/td>/g,"");
+    });
+
+    let result = rs[1].split(',');
     result = result.sort((a, b)=>a - b);
     //bj开奖规则
     let one = (+result.slice(0, 6).getSum()) % 10,
@@ -62,7 +72,7 @@ export let loadLotteryRecord = async (type) => {
         sum = one + two + third;
     // 开奖期数 1 ,2 ,3 ,合, 开奖地点:1北京 2加拿大
     obj = {
-      serial_number: openRs.c_t,
+      serial_number: rs[0],
       one,
       two,
       third,
@@ -234,4 +244,15 @@ function formatResult(sum) {
   }
 
   return [hasMax,hasDouble,combination];
+}
+
+function isJSON(str) {
+  if (typeof str == 'string') {
+    try {
+      JSON.parse(str);
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
 }

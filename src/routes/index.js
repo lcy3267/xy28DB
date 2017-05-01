@@ -3,36 +3,30 @@ const router = express.Router();
 import {dbQuery} from '../db/';
 import {loadLotteryRecord,clearingIntegral} from '../common/lotteryUtil';
 import {responseJSON} from '../common/index';
+import {notToken, key} from '../config/index';
 import jwt from 'jsonwebtoken';
 
 /* GET home page. */
-router.get('/*', function(req, res, next) {
-  next();
-  return;
-  if(req.path == '/token') return next();
-  let token = req.query.token;
+router.all('/*', function(req, res, next) {
+  if(notToken.includes(req.path)) return next();
+  let token = req.query.token || req.body.token;
   if (token) {
     // 确认token
-    jwt.verify(token, 'yuan123', function(err, decoded) {
+    jwt.verify(token, key.token, function(err, decoded) {
       if (err) {
-        return res.json({ success: false, message: err });
+        return res.status(401).send({ err_code: 401, message: err });
       } else {
-        req.data = decoded;
+        req.loginUser = decoded.user;
         next();
       }
     });
   } else {
     // 如果没有token，则返回错误
     return res.status(403).send({
-      success: false,
+      err_code: 403,
       message: '没有提供token！'
     });
   }
-});
-
-router.get('/token',async (req, res, next) => {
-  var token = jwt.sign({name:'xxxxxx'}, 'yuan123', {expiresIn: '1h'});
-  res.json({token});
 });
 
 router.get('/test',async (req, res, next) => {
@@ -42,7 +36,9 @@ router.get('/test',async (req, res, next) => {
 // result
 router.get('/result',async (req, res, next) => {
   let rs = await loadLotteryRecord(1);
-  responseJSON(res,rs);
+
+  res.send(rs);
+  //responseJSON(res,rs);
 });
 
 // 清算积分
