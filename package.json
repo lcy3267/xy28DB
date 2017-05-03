@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "supervisor --harmony ./bin/www",
+    "start": "supervisor --harmony ./lib/app",
     "socket": "supervisor --harmony ./lib/socket/index",
     "build": "babel src --out-dir lib"
   },

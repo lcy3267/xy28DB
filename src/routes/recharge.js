@@ -7,7 +7,8 @@ import { rechargeType, changeType } from '../config/index';
 
 //获取收款账号
 router.get('/list', async (req, res, next) => {
-    let records = await dbQuery('select * from recharge_integral_record where status != -1 order by created_at desc');
+    let records = await dbQuery('select r.*,u.account user_account,u.name user_name from recharge_integral_record r ' +
+        'left join users u on u.user_id = r.user_id where r.status != -1 order by r.created_at desc');
     responseJSON(res, {records});
 });
 

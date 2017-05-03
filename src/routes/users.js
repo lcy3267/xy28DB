@@ -24,7 +24,7 @@ router.post('/register', async (req, res, next) => {
     let rows = await dbQuery(userSQL.insert,[req.body.account,password,req.body.account]);
     let users = await dbQuery(userSQL.queryUserById,[rows.insertId]);
 
-    var token = jwt.sign({user: users[0]}, key.token, {expiresIn: '1h'});
+    var token = jwt.sign({user: users[0]}, key.token, {expiresIn: '24h'});
 
     responseJSON(res, {
         token,
@@ -45,7 +45,7 @@ router.post('/login', async (req, res, next) => {
         }
     }else if(password == rows[0].password && rows[0].user_type == 2){
         let user = rows[0];
-        var token = jwt.sign({user}, key.token, {expiresIn: '1h'});
+        var token = jwt.sign({user}, key.token, {expiresIn: '24h'});
         rs = {
             token,
             err_code: 0,

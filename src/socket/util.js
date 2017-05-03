@@ -24,7 +24,7 @@ export function  getCnaOpenTime(){
 }
 
 //获取北京开奖时间
-export function getSecond(){
+export function getBjOpenTime(){
     var myDate = new Date();
 
     let currentMinute = myDate.getMinutes(); //当前分钟数
@@ -36,7 +36,7 @@ export function getSecond(){
     let minute = next - single -1;
     let second = 60 - currentSecond -1;
 
-    return {minute,second};
+    return minute*60 + second;
 }
 
 function GetDateStr(AddDayCount) {
