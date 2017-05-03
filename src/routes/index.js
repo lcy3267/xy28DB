@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken';
 /* GET home page. */
 router.all('/*', function(req, res, next) {
   if(notToken.includes(req.path)) return next();
-  let token = req.query.token || req.body.token;
+  let token = req.header('Token');
   if (token) {
     // 确认token
     jwt.verify(token, key.token, function(err, decoded) {

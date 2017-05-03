@@ -65,3 +65,17 @@ export const formatDate =  (date,fmt) => {
             fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));
     return fmt;
 };
+
+export const getUserSocket =  (io,user_id) => {
+
+    let key = null;
+
+    for(let k of Object.keys(io.clients().sockets)){
+        if(io.clients().sockets[k].user_id && io.clients().sockets[k].user_id == user_id){
+            key = k;
+            break;
+        }
+    }
+    
+    return io.clients().sockets[key] || null;
+};

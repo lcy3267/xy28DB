@@ -5,7 +5,7 @@ import bottomPourSql from '../db/sql/bottomPourSql';
 import {integralChangeSql, usersSql} from '../db/sql';
 import {changeType} from '../config/index';
 import schedule from 'node-schedule';
-import { getCnaOpenTime, getBjOpenTime } from './util';
+import { getUserSocket, getBjOpenTime } from './util';
 
 let socketFunc =  (io)=>{
     //当前在线人数
@@ -13,16 +13,17 @@ let socketFunc =  (io)=>{
 
     // 房间用户名单
     let roomInfo = {};
+    let hours = new Date().getHours();
 
-    let opening = false;//开奖中
+
+    let cndOpening = false,
+        bjOpening = hours >= 0 && hours < 24;
+
     let cycle = null;//遍历开奖结果
 
     let openResult = (type,callback)=> {
         cycle = setTimeout(async()=> {
             let rs = await clearingIntegral(type);
-
-            console.log('-------获取开奖结果中');
-
             if (!rs || rs && rs.err_code == 1001) {
                 openResult(type,callback);
             } else if (rs.err_code == 0) {
@@ -59,27 +60,39 @@ let socketFunc =  (io)=>{
         }
     },1000);*/
 
-
     let chinaTime = null;
     let chinaTimer = setInterval(()=>{
         chinaTime = getBjOpenTime();
-        if(chinaTime <= 60 && chinaTime >= 270){
-            opening = true;
-            io.emit('openResult', {opening});
+
+        if(chinaTime <= 60 || chinaTime > 270 || hours < 9){
+            bjOpening = true;
+            io.emit('openResult', {opening: bjOpening});
         }else{
-            opening = false;
+            bjOpening = false;
+            io.emit('openResult', {opening: bjOpening});
         }
 
-        if(chinaTime <= 300 && chinaTime <= 270){
+        if(chinaTime <= 300 && chinaTime >= 220){
             if(!cycle){
-                openResult(1,async (rs)=>{
+                openResult(1, async (rs)=>{
                     if (rs && rs.err_code == 0) {
-                        let integralRs = await dbQuery("select integral from users where user_id = 1");
-                        //向所有客户端广播发布的消息
-                        io.emit('openResult', {
-                            integral: integralRs[0].integral,
-                            serial_number: rs.result.serial_number
-                        });
+                        let {result, clearUsers} = rs;
+
+                        if(clearUsers && clearUsers.length > 0){
+                            clearUsers.map(async (user)=>{
+                                let socket = getUserSocket(io, user.user_id);
+                                if(socket){
+                                    let integralRs = await dbQuery("select integral from users where user_id = ?",[user.user_id]);
+
+                                    socket.emit('openResult', {
+                                        integral: integralRs[0].integral,
+                                        serial_number: result.serial_number
+                                    });
+                                }
+                            })
+                        }
+
+
                         cycle && clearTimeout(cycle);
                     }
                 });
@@ -87,42 +100,45 @@ let socketFunc =  (io)=>{
         }
     },2000);
 
-    const users = [];
-
     io.on('connection', async(socket)=> {
         console.log('a user connected');
 
         //监听新用户加入
         socket.on('login', async(data)=> {
             //将新加入用户的唯一标识当作socket的名称，后面退出的时候会用到
-            let {user, roomId} = data;
+            let {user, roomId, roomType} = data;
+            let roomNumber = `${roomType}-${roomId}`;
+
             socket.user_id = user.user_id;
             socket.roomId = roomId;
+            socket.roomType = roomType;
+            socket.roomNumber = roomNumber;
 
-            if (!roomInfo[roomId]) {
-                roomInfo[roomId] = {};
+
+            if (!roomInfo[roomNumber]) {
+                roomInfo[roomNumber] = {};
             }
 
-            roomInfo[roomId][user.user_id] = user;
+            roomInfo[roomNumber][user.user_id] = user;
 
-            socket.join(roomId);    // 加入房间
+            socket.join(roomNumber);    // 加入房间
 
             let integralRs = await dbQuery(usersSql.queryUserIntegral, [user.user_id]);
 
-            io.to(roomId).emit('login', {
-                opening,
+            io.to(roomNumber).emit('login', {
+                opening: roomType == 1 ? bjOpening : cndOpening,
                 joinUser: user,
                 integral: integralRs[0].integral,
             });
 
             loadRecord((lotteryRs)=>{
-                io.to(roomId).emit('login', {
+                io.to(roomNumber).emit('login', {
                     lotteryRs,
                     joinUser: user,
                 });
             });
 
-            console.log(user.name + '加入了聊天室:' + roomId);
+            console.log(user.name + '加入了聊天室:' + roomNumber);
         });
 
         //监听用户下注
@@ -132,7 +148,7 @@ let socketFunc =  (io)=>{
             let rs = await myTransaction([
                 {//下注
                     sql: bottomPourSql.insert,
-                    params: [user.user_id, money, type, number, serial_number, socket.roomId, 1]
+                    params: [user.user_id, money, type, number, serial_number, socket.roomId, socket.roomType]
                 },
                 {//用户减分
                     sql: "update users set integral = (integral - ?) where user_id = ?",
@@ -147,7 +163,7 @@ let socketFunc =  (io)=>{
             if (rs) {
                 let integralRs = await dbQuery(usersSql.queryUserIntegral, [user.user_id]);
                 //向所有客户端广播发布的消息
-                io.to(socket.roomId).emit('bet', {bet});
+                io.to(socket.roomNumber).emit('bet', {bet});
                 socket.emit('updateIntegral', {bet, integral: integralRs[0].integral});
                 console.log(bet.user.name + '下注：' + bet.money, '下注类型:' + bet.type);
             }
@@ -165,16 +181,17 @@ let socketFunc =  (io)=>{
         //监听用户退出
         socket.on('disconnect', function () {
             // 从房间名单中移除
-            let room = roomInfo[socket.roomId];
+            let room = roomInfo[socket.roomNumber];
             var loginOutUser = room && room[socket.user_id];
-            if (loginOutUser) {
-                delete roomInfo[socket.roomId][socket.user_id];
 
-                socket.leave(socket.roomId);    // 退出房间
+            if (loginOutUser && socket.roomNumber) {
+                delete roomInfo[socket.roomNumber][socket.user_id];
 
-                io.to(socket.roomId).emit('logout', {user: loginOutUser});
+                socket.leave(socket.roomNumber);    // 退出房间
 
-                console.log(loginOutUser.name + '退出了聊天室:' + socket.roomId);
+                io.to(socket.roomNumber).emit('logout', {user: loginOutUser});
+
+                console.log(loginOutUser.name + '退出了聊天室:' + socket.roomNumber);
             }
         });
     });

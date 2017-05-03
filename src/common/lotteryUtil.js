@@ -146,19 +146,14 @@ export let loadLotteryRecord = async (type) => {
 export let clearingIntegral = async (placeType = 1) => {
   //开奖结果
   let result = await loadLotteryRecord(placeType);
-  if(result.err_code == 0){
+  if(result.err_code == 0 || result.err_code == 1002){
     clearing.users = [];
     let rs = await clearing(result);
     return rs;
-  }else{
-    if(result.err_code == 1002){//该期未结算 进行结算
-      clearing.users = [];
-      await clearing(result);
-    }
-    return {
-      err_code: 1001,
-      msg: '该期已经进行过几分结算',
-    }
+  }
+  return {
+    err_code: 1001,
+    msg: '该期已经进行过积分结算',
   }
 }
 
@@ -174,7 +169,10 @@ async function clearing(result) {
   for(var record of records){
     //添加结算用户
     if(!clearing.users.includes(record.user_id)){
-      clearing.users.push(record.user_id);
+      let user = {
+        user_id: record.user_id,
+      }
+      clearing.users.push(user);
     };
 
     let hasWinning = false;
@@ -187,6 +185,13 @@ async function clearing(result) {
       if(bottom_pour_type == rs){
         hasWinning = true;
         let integral = money * rate;
+
+        clearing.users.map((user)=>{
+          if(user.user_id == record.user_id){
+            user.integral = user.integral?user.integral+integral:integral;
+          }
+        });
+
         //中奖 修改相应数据
         await myTransaction([
           {

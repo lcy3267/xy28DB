@@ -3,7 +3,7 @@ import userSQL from '../db/sql/userSql';
 import md5 from 'blueimp-md5';
 const router = express.Router();
 // 使用DBConfig.js的配置信息创建一个MySQL连接池
-import {dbQuery, myTransaction} from '../db/index';
+import {dbQuery} from '../db/index';
 import {responseJSON} from '../common/index';
 import {key} from '../config/';
 import { getCnaOpenTime } from '../socket/util';
