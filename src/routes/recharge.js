@@ -5,6 +5,7 @@ import {dbQuery, myTransaction} from '../db/index';
 import {responseJSON} from '../common/index';
 import { rechargeType, changeType } from '../config/index';
 import { getUserSocket } from '../socket/util';
+import {usersSql, integralChangeSql} from '../db/sql';
 
 
 const recharge = (io)=>{
@@ -33,6 +34,40 @@ const recharge = (io)=>{
         }
     });
 
+    // 通过用户充值申请
+    router.put('/approveRecharge', async (req, res, next) => {
+
+        let id = +req.body.id;
+
+        const record = await dbQuery('select money,user_id from recharge_integral_record where id = ?',[id]);
+
+        const {money: integral, user_id} = record[0];
+
+        let rs = await myTransaction([
+            {//用户改变积分
+                sql: usersSql.updateUserIntegral,
+                params: [integral, user_id]
+            },
+            {//增加积分变动记录
+                sql: integralChangeSql.insert,
+                params: [integral, user_id, changeType.input]
+            },
+            {//改变该条记录状态
+                sql: "update recharge_integral_record set status = 2 where id = ?",
+                params: [id]
+            },
+        ]);
+
+        if(rs){
+            responseJSON(res, {rs});
+            let integralRs = await dbQuery("select integral from users where user_id = ?",[user_id]);
+            let socket = getUserSocket(io,user_id);
+            if(socket){
+                socket.emit('updateIntegral', {integral: integralRs[0].integral});
+            }
+        }
+    });
+
     //管理员手动充值积分
     router.put('/adminRecharge', async (req, res, next) => {
         let user = req.loginUser;
@@ -47,19 +82,18 @@ const recharge = (io)=>{
         let {user_id, integral} = req.body;
 
         let rs = await myTransaction([
+            {//用户改变积分
+                sql: usersSql.updateUserIntegral,
+                params: [integral, user_id]
+            },
             {//用户积分变动记录
-                sql: "insert into user_integral_change(user_id,integral,type) values(?,?,?)",
+                sql: integralChangeSql.insert,
                 params: [user_id, integral, changeType.adminInput]
             },
             {//增加用户充值记录
                 sql: "insert into recharge_integral_record(user_id,money,recharge_type,status) values(?,?,?,?)",
                 params: [user_id, integral, rechargeType.adminInput, 2]
             },
-            {//用户改变积分
-                sql: "update users set integral = (integral + ?) where user_id = ?",
-                params: [integral, user_id]
-            },
-
         ]);
 
         if(rs){
@@ -74,6 +108,8 @@ const recharge = (io)=>{
         }
 
     });
+
+
 
     return router;
 }

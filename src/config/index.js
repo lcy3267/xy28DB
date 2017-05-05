@@ -14,7 +14,10 @@ export let mysqlConfig = {
 export let openResultHost = {
     //hina: "http://123.168kai.com/Open/CurrentOpenOne?code=10014&_=0.06803648965035364",
     china: "http://www.bwlc.net/bulletin/keno.html",
-    cnd: "http://kj.1680api.com/Open/CurrentOpenOne?code=10041&_=0.06803648965035364",
+
+    //cnd: "http://www.28shence.com/xxw.php?in=2",
+    //cnd: "http://www.pc2800.com/?m=Home&c=Index&a=yuce&type=2"
+    cnd: "http://www.dandan28.com/index/forecast/type/2"
 }
 
 //开奖类型
@@ -59,3 +62,4 @@ export const notToken = [
     "/users/register",
     "/result"
 ]
+

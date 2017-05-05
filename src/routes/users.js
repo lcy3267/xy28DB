@@ -72,7 +72,7 @@ router.post('/pcLogin', async (req, res, next) => {
         }
     }else if(password == rows[0].password && rows[0].user_type == 1){
         let user = rows[0];
-        var token = jwt.sign({user}, key.token, {expiresIn: '1h'});
+        var token = jwt.sign({user}, key.token, {expiresIn: '24h'});
         rs = {
             err_code: 0,
             user: rows[0],

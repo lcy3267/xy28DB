@@ -48,7 +48,6 @@ app.all('*',function (req, res, next) {
     res.sendStatus(200); ///让options请求快速返回/
   }
   else {
-    console.log('22222222')
     next();
   }
 });
