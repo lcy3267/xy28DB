@@ -30,6 +30,7 @@ function myPromise(promise) {
         );
     })
 }
+
 let myRequest = (path, html = false) => {
     return myPromise(rp(path))
         .then((res)=> {
@@ -40,7 +41,6 @@ let myRequest = (path, html = false) => {
             }
         })
         .catch(function (error) {
-            console.log(error)
             console.log("请求出错啦");
             return false;
         });
@@ -241,7 +241,7 @@ async function clearing(result) {
     if (records.length != 0) {
         return await clearing(result);
     } else {
-        await dbQuery("update lottery_record set is_open = 1 where serial_number = ?", [result.serial_number]);
+        await dbQuery("update lottery_record set is_open = 1,updated_at = now() where serial_number = ?", [result.serial_number]);
         return {err_code: 0, result, clearUsers: clearing.users}
     }
 }

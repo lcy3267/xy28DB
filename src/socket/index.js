@@ -67,6 +67,7 @@ let socketFunc =  (io)=>{
     let cndTime = null;
     let cndTimer = setInterval(()=>{
         let time = getCnaOpenTime();
+        console.log('---------cnd',time);
         if(time <= 30 || time >= 180){
             cndOpening = true;
         }else{
@@ -91,8 +92,8 @@ let socketFunc =  (io)=>{
         io.of(bjPath).emit('updateStatus', {opening: bjOpening, time});
     },1000);
 
-    chinaTimer && clearInterval(chinaTimer)
-    cndTimer && clearInterval(cndTimer)
+    //chinaTimer && clearInterval(chinaTimer)
+    //cndTimer && clearInterval(cndTimer)
 
     //北京房间
     var bjNsp = io.of(bjPath);
@@ -177,6 +178,17 @@ let socketFunc =  (io)=>{
             }
         });
 
+        //监听用户发送信息
+        socket.on('msg',  async ({msg})=>{
+            const users = await dbQuery("select * from users where user_id = ?",[msg.user.user_id]);
+            if(users[0].has_speak == 1){
+                msg.err_code = 0;
+                io.of(path).to(socket.roomNumber).emit('msg', {msg});
+            }else{
+                socket.emit('msg', {msg: {err_code: -1}});
+            }
+        })
+
         //心跳包
         socket.on('palpitation', function (){
             if(socket.user_id){
@@ -212,6 +224,7 @@ async function loadRecord(type, callback){
     if(lotteryRs && lotteryRs.serial_number){
         callback && callback(lotteryRs);
     }else{
+        console.log('-------loadRecord',type)
         setTimeout(async ()=>{
             loadRecord(type, callback);
         },500);

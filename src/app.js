@@ -57,9 +57,10 @@ app.disable('etag');
 //
 app.use('/', require('./routes/index'));
 app.use('/users', require('./routes/users'));
-app.use('/gameRules', require('./routes/gameRules'));
+app.use('/gameRules', require('./routes/gameRules')(socket));
 app.use('/betRecord', require('./routes/betRecord'));
 app.use('/lottery', require('./routes/lottery'));
+app.use('/system', require('./routes/system'));
 app.use('/recharge', require('./routes/recharge')(socket));
 
 // catch 404 and forward to error handler

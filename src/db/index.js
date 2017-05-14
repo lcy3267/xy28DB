@@ -5,10 +5,15 @@ import Client from './client';
  * @param params
  * @returns {*}
  */
-export let dbQuery = async (sql, params = []) => {
+export let dbQuery = (sql, params = []) => {
     let client = new Client();
-    let result = await client.query(sql, params);
-    return result;
+    return client.query(sql, params).catch(function (error) {
+        console.warn("请求出错啦");
+        return false;
+    });;
+    /*let result = await client.query(sql, params);
+    console.log(result,' --------dbQuery--------')
+    return result;*/
     /*console.log(sql);
     console.log(params);
     return new Promise((resolve, reject) => {

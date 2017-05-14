@@ -8,15 +8,12 @@ import {responseJSON} from '../common/index';
 import {key} from '../config/';
 import { getCnaOpenTime } from '../socket/util';
 import jwt from 'jsonwebtoken';
-import { changeType } from '../config/index';
-
 
 // 添加用户
 router.get('/list', async (req, res, next) => {
     let users = await dbQuery(userSQL.queryAll);
     responseJSON(res, {users});
 });
-
 
 // 添加用户
 router.post('/register', async (req, res, next) => {
@@ -45,7 +42,7 @@ router.post('/login', async (req, res, next) => {
         }
     }else if(password == rows[0].password && rows[0].user_type == 2){
         let user = rows[0];
-        var token = jwt.sign({user}, key.token, {expiresIn: '24h'});
+        var token = jwt.sign({user}, key.token, {expiresIn: '30d'});
         rs = {
             token,
             err_code: 0,
@@ -85,6 +82,35 @@ router.post('/pcLogin', async (req, res, next) => {
         }
     }
     responseJSON(res, rs);
+});
+
+// 添加用户
+router.post('/bindBank', async (req, res, next) => {
+    const {user_id} = req.loginUser;
+    const {userName, bankName, bankAccount, bankAddress, password} = req.body;
+
+    console.log(req.body,user_id);
+    
+    let rows = await dbQuery('insert into finance_accounts(user_id,user_name,bank_name,bank_account,bank_address) values(?,?,?,?,?)',
+    [user_id, userName, bankName, bankAccount, bankAddress]);
+
+    responseJSON(res, {rs: rows[0]});
+});
+
+router.get('/bankCards', async (req, res, next) => {
+    const {user_id} = req.loginUser;
+
+    let rows = await dbQuery('select * from finance_accounts where user_id = ?',[user_id]);
+
+    responseJSON(res, {cards: rows});
+});
+
+router.put('/updateUserSpeak', async (req, res, next) => {
+    const {user_id, has_speak} = req.body;
+
+    let rows = await dbQuery('update users set has_speak = ? where user_id = ?',[has_speak,user_id]);
+
+    responseJSON(res, {rs: rows});
 });
 
 

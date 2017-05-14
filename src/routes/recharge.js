@@ -53,7 +53,7 @@ const recharge = (io)=>{
                 params: [integral, user_id, changeType.input]
             },
             {//改变该条记录状态
-                sql: "update recharge_integral_record set status = 2 where id = ?",
+                sql: "update recharge_integral_record set status = 2,updated_at = now() where id = ?",
                 params: [id]
             },
         ]);
