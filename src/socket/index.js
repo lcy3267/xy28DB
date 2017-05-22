@@ -67,7 +67,6 @@ let socketFunc =  (io)=>{
     let cndTime = null;
     let cndTimer = setInterval(()=>{
         let time = getCnaOpenTime();
-        console.log('---------cnd',time);
         if(time <= 30 || time >= 180){
             cndOpening = true;
         }else{
@@ -82,7 +81,7 @@ let socketFunc =  (io)=>{
     let chinaTimer = setInterval(()=>{
         let time = getBjOpenTime();
         if(time <= 30 || time > 270 || hours < 9){
-            bjOpening = true;
+            bjOpening = false;
         }else{
             bjOpening = false;
         }
@@ -92,8 +91,8 @@ let socketFunc =  (io)=>{
         io.of(bjPath).emit('updateStatus', {opening: bjOpening, time});
     },1000);
 
-    //chinaTimer && clearInterval(chinaTimer)
-    //cndTimer && clearInterval(cndTimer)
+    //chinaTimer && clearInterval(chinaTimer);
+    //cndTimer && clearInterval(cndTimer);
 
     //北京房间
     var bjNsp = io.of(bjPath);
@@ -152,12 +151,12 @@ let socketFunc =  (io)=>{
 
         //监听用户下注
         socket.on('bet', async(bet)=> {
-            let {user, money, type, number, serial_number} = bet;
-            //let dbRs = await dbQuery(bottomPourSql.insert,params);
+            let {user, money, type, number, serial_number, playType} = bet;
+
             let rs = await myTransaction([
                 {//下注
                     sql: bottomPourSql.insert,
-                    params: [user.user_id, money, type, number, serial_number, socket.roomId, socket.roomType]
+                    params: [user.user_id, playType, money, type, number, serial_number, socket.roomId, socket.roomType]
                 },
                 {//用户减分
                     sql: "update users set integral = (integral - ?) where user_id = ?",

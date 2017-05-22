@@ -14,4 +14,6 @@ router.get('/record',async function (req, res, next) {
     responseJSON(res, {records: rows});
 });
 
+
+
 module.exports = router;

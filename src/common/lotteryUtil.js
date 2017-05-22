@@ -179,63 +179,72 @@ async function clearing(result) {
     //获取当前期数下注记录
     let records = await dbQuery(bottomPourSql.querySerialRecord, result.serial_number);
 
-    //游戏规则 赔率
-    let game_rules = await dbQuery(gameRulesSql.queryAll);
-
     //遍历下注记录
     for (var record of records) {
-
-        const userId = record.user_id;
+        const {user_id, bottom_pour_money, bottom_pour_type, play_type, bottom_pour_number, room_id} = record;
 
         //添加结算用户
-        if (!clearing.users[userId]) {
+        if (!clearing.users[user_id]) {
             let user = {
-                user_id: userId,
+                user_id: user_id,
                 integral: 0,
             }
-            clearing.users[userId] = user;
+            clearing.users[user_id] = user;
         }
 
         let hasWinning = false;
-        let money = +record.bottom_pour_money; // 下注金额
-        let bottom_pour_type = record.bottom_pour_type;
-        let rate = game_rules.filter((rules)=>rules.type == bottom_pour_type)[0].rate;
-        let integral = money * rate; // 赢取金额
+        let money = +bottom_pour_money; // 下注金额
+        let integral = 0; // 赢取金额
 
-        //遍历是否中奖
-        for (var rs of result.result) {
+        if(play_type == 1 && result.result.indexOf(bottom_pour_type) > -1){
+            hasWinning = true;
 
-            if (bottom_pour_type == rs) {
-                hasWinning = true;
+            //游戏规则 赔率
+            let game_rules = await dbQuery('select g.combine_rates from game_rules g left join rooms r on r.id = ? where g.id = r.rule_combine_id',[room_id]);
 
-                clearing.users[userId].integral += integral;
+            let rule = JSON.parse(game_rules[0].combine_rates);
+            let rate = rule[bottom_pour_type].value;
 
-                //中奖 修改相应数据
-                await myTransaction([
-                    {
-                        sql: "update users set integral = (? + integral) where user_id = ?",
-                        params: [integral, userId],
-                    },
-                    {
-                        sql: "update bottom_pour_record set is_winning = ?,win_integral = ? where bottom_pour_id = ?",
-                        params: [1, integral, record.bottom_pour_id],
-                    },
-                    {
-                        sql: integralChangeSql.insert,
-                        params: [userId, integral, changeType.win],
-                    },
-                ]);
-                break;
-            }
+            integral = money * (rate -1); // 赢取金额
+
+        }else if(play_type == 2 && bottom_pour_number == result.sum){
+            hasWinning = true;
+
+            let game_rules = await dbQuery('select g.single_point_rate from game_rules g left join rooms r on r.id = ? where g.id = r.rule_combine_id',[room_id]);
+
+            let rules = game_rules[0].single_point_rate.split('|');
+
+            rules.map((rate, index)=>{
+                rules[14+index] = rules[13-index];
+            });
+
+            integral = money * (+rules[bottom_pour_number] - 1);
         }
 
-        //减去本金
-        clearing.users[userId].integral -= money;
+        if(hasWinning){
+            clearing.users[user_id].integral += integral;
 
-        if (!hasWinning) {
+            //中奖 修改相应数据
+            await myTransaction([
+                {
+                    sql: "update users set integral = (? + integral) where user_id = ?",
+                    params: [integral, user_id],
+                },
+                {
+                    sql: "update bottom_pour_record set is_winning = ?,win_integral = ? where bottom_pour_id = ?",
+                    params: [1, integral, record.bottom_pour_id],
+                },
+                {
+                    sql: integralChangeSql.insert,
+                    params: [user_id, integral, changeType.win],
+                },
+            ]);
+        }else{
             //将用户下注记录 变为已 未中奖
-            await dbQuery("update bottom_pour_record set is_winning = ? where bottom_pour_id = ?", [-1, record.bottom_pour_id]);
+            await dbQuery("update bottom_pour_record set is_winning = ?,win_integral = ? where bottom_pour_id = ?",
+                [-1, -money, record.bottom_pour_id]);
         }
+
     }
 
     if (records.length != 0) {

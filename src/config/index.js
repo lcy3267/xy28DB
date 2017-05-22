@@ -22,16 +22,16 @@ export let openResultHost = {
 
 //开奖类型
 export let lotteryType ={
-    max: 1, //大
-    min: 2, //小
-    single: 3, //单
-    double: 4, //双
-    maxS: 5, //大单
-    maxD: 6, //大双
-    minS: 7, //小单
-    minD: 8, //小双
-    maximum: 9, //极大
-    minimum: 10, //极小
+    max: 'big', //大
+    min: 'small', //小
+    single: 'single', //单
+    double: 'double', //双
+    maxS: 'big_single', //大单
+    maxD: 'big_double', //大双
+    minS: 'small_single', //小单
+    minD: 'small_double', //小双
+    maximum: 'max', //极大
+    minimum: 'min', //极小
 }
 
 //积分变动类型
@@ -60,6 +60,7 @@ export const notToken = [
     "/users/login",
     "/users/pcLogin",
     "/users/register",
-    "/result"
+    "/result",
+    "/users/test",
 ]
 
