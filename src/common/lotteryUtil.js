@@ -210,9 +210,9 @@ async function clearing(result) {
         }else if(play_type == 2 && bottom_pour_number == result.sum){
             hasWinning = true;
 
-            let game_rules = await dbQuery('select g.single_point_rate from game_rules g left join rooms r on r.id = ? where g.id = r.rule_combine_id',[room_id]);
+            let game_rules = await dbQuery('select g.single_point_rates from game_rules g left join rooms r on r.id = ? where g.id = r.rule_single_id',[room_id]);
 
-            let rules = game_rules[0].single_point_rate.split('|');
+            let rules = game_rules[0].single_point_rates.split('|');
 
             rules.map((rate, index)=>{
                 rules[14+index] = rules[13-index];
@@ -240,6 +240,8 @@ async function clearing(result) {
                 },
             ]);
         }else{
+            clearing.users[user_id].integral -= money;
+
             //将用户下注记录 变为已 未中奖
             await dbQuery("update bottom_pour_record set is_winning = ?,win_integral = ? where bottom_pour_id = ?",
                 [-1, -money, record.bottom_pour_id]);

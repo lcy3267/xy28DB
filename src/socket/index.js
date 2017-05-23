@@ -21,8 +21,10 @@ let socketFunc =  (io)=>{
 
     let bjResult = null,
         cndResult = null,
-        cndOpening = false,
-        bjOpening = hours >= 0 && hours < 24;
+        cndT = getCnaOpenTime(),
+        bjT = getBjOpenTime(),
+        cndOpening = cndT < 30 || cndT > 180,
+        bjOpening = (hours >= 0 && hours < 24) && (bjT < 30 || bjT > 270);
 
     let bjTimeout = null;
     let cndTimeout = null;
@@ -41,8 +43,10 @@ let socketFunc =  (io)=>{
             console.log(result);
             console.log(clearUsers);
             if(type == bjType){
+                bjOpening = false;
                 bjResult = result;
             }else{
+                cndOpening = false;
                 cndResult = result;
             }
 
@@ -67,12 +71,10 @@ let socketFunc =  (io)=>{
     let cndTime = null;
     let cndTimer = setInterval(()=>{
         let time = getCnaOpenTime();
-        if(time <= 30 || time >= 180){
+        if(time <= 30){
             cndOpening = true;
-        }else{
-            cndOpening = false;
         }
-        if(time <= 160 && time >= 100){
+        if(time <= 210 && cndOpening){
             sendOpenResult(cndType);
         }
         io.of(cndPath).emit('updateStatus', {opening: cndOpening, time});
@@ -80,12 +82,10 @@ let socketFunc =  (io)=>{
 
     let chinaTimer = setInterval(()=>{
         let time = getBjOpenTime();
-        if(time <= 30 || time > 270 || hours < 9){
-            bjOpening = false;
-        }else{
-            bjOpening = false;
+        if(time <= 30 || hours < 9){
+            bjOpening = true;
         }
-        if(time <= 280 && time >= 200 && hours > 9){
+        if(time <= 280 && bjOpening && hours > 9){
             sendOpenResult(bjType);
         }
         io.of(bjPath).emit('updateStatus', {opening: bjOpening, time});
