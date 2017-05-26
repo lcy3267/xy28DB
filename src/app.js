@@ -62,6 +62,8 @@ app.use('/betRecord', require('./routes/betRecord'));
 app.use('/lottery', require('./routes/lottery'));
 app.use('/system', require('./routes/system'));
 app.use('/recharge', require('./routes/recharge')(socket));
+app.use('/withdraw', require('./routes/withdraw'));
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

@@ -1,6 +1,11 @@
-/**
- * Created by chengyuan on 2017/3/26.
- */
+
+export let formatPage = (sql, pageIndex = 1, pageSize = 10)=>{
+    let offset = 0;
+    if(pageIndex == 1) offset = 0;
+    if(pageIndex != 1) offset = (pageIndex - 1) * pageSize;
+    return sql + ` limit ${offset},${pageSize}`;
+}
+
 export let responseJSON = (res, ret) => {
     if (typeof ret === 'undefined') {
         res.json({

@@ -164,7 +164,7 @@ let socketFunc =  (io)=>{
                 },
                 {//增加用户积分变化记录
                     sql: integralChangeSql.insert,
-                    params: [user.user_id, money, changeType.xz],
+                    params: [user.user_id, -money, changeType.xz],
                 }
             ]);
 

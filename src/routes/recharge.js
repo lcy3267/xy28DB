@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 // 使用DBConfig.js的配置信息创建一个MySQL连接池
 import {dbQuery, myTransaction} from '../db/index';
-import {responseJSON} from '../common/index';
+import {responseJSON, formatPage} from '../common/index';
 import { rechargeType, changeType } from '../config/index';
 import { getUserSocket } from '../socket/util';
 import {usersSql, integralChangeSql} from '../db/sql';
@@ -11,9 +11,22 @@ import {usersSql, integralChangeSql} from '../db/sql';
 const recharge = (io)=>{
     //获取收款账号
     router.get('/list', async (req, res, next) => {
-        let records = await dbQuery('select r.*,u.account user_account,u.name user_name from recharge_integral_record r ' +
-            'left join users u on u.user_id = r.user_id where r.status != -1 order by r.created_at desc');
-        responseJSON(res, {records});
+
+        const {pageIndex, pageSize} = req.query;
+
+        const sql = formatPage('select r.*,u.account user_account,u.name user_name from recharge_integral_record r ' +
+            'left join users u on u.user_id = r.user_id where r.status != -1 order by r.created_at desc',
+            pageIndex, pageSize);
+
+        let records = await dbQuery(sql);
+
+        let rs = await dbQuery('select count(id) as count from recharge_integral_record where status != -1');
+
+        if(records){
+            responseJSON(res, {records, count: rs[0].count});
+        }else{
+            responseJSON(res)
+        }
     });
 
     //获取收款账号
@@ -108,8 +121,6 @@ const recharge = (io)=>{
         }
 
     });
-
-
 
     return router;
 }

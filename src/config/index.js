@@ -42,6 +42,7 @@ export let changeType = {
     out: 4,//提现
     hs: 5,//回水
     adminInput: 6,//管理员手动充值
+    refuseOut: 7,//拒绝提现
 }
 
 //充值类型
