@@ -10,8 +10,16 @@ var {dbQuery} = require('../db/index');
 
 //房间列表
 router.get('/rooms',async function (req, res, next) {
-    let rows = await dbQuery("select * from rooms where status");
+    let rows = await dbQuery("select * from rooms where status != -1");
     rows?responseJSON(res, {rooms: rows}):responseJSON(res);
+})
+
+//房间列表
+router.get('/roomInfo',async function (req, res, next) {
+    const {roomId} = req.query;
+    console.log('roomId',roomId)
+    let rows = await dbQuery("select * from rooms where id = ?",[roomId]);
+    rows?responseJSON(res, {room: rows[0]}):responseJSON(res);
 });
 
 //回水规则列表
@@ -22,10 +30,10 @@ router.get('/rollbackRules',async function (req, res, next) {
 
 //新增回水规则
 router.post('/addRollback',async function (req, res, next) {
-    const {name, levels, rates} = req.body;
+    const {name, levels, rates, ruleLevel} = req.body;
 
-    let rows = await dbQuery("insert into rollback_rules(name,level_1,level_2,level_3,level_4,rate_1,rate_2,rate_3,rate_4) values(?,?,?,?,?,?,?,?,?)",
-    [name, levels[0], levels[1], levels[2], levels[3], rates[0], rates[1], rates[2], rates[3]]);
+    let rows = await dbQuery("insert into rollback_rules(name,rule_level,level_1,level_2,level_3,level_4,rate_1,rate_2,rate_3,rate_4) values(?,?,?,?,?,?,?,?,?,?)",
+    [name, +ruleLevel, levels[0], levels[1], levels[2], levels[3], rates[0], rates[1], rates[2], rates[3]]);
 
     if(rows){
         responseJSON(res, {rs: rows});

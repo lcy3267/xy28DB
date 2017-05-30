@@ -7,6 +7,10 @@ import {changeType} from '../config/index';
 import schedule from 'node-schedule';
 import { getUserSocket, getBjOpenTime, getCnaOpenTime } from './util';
 
+
+
+//@todo 定时器 加拿大 7点到8点 停盘,,北京 0点 到 12点停盘
+
 let socketFunc =  (io)=>{
     //当前在线人数
     var onlineCount = 0;
@@ -27,7 +31,7 @@ let socketFunc =  (io)=>{
         cndOpening = cndT < 30 || cndT > 180,
         bjOpening =  bjT < 30 || bjT > 270,
         bjClose = (hours < 9 && hours >= 0) || (hours == 23 && minutes >= 55),
-        cndClose = hours == 19 || hours == 20;
+        cndClose = hours == 19;
 
     let bjTimeout = null;
     let cndTimeout = null;
@@ -97,7 +101,7 @@ let socketFunc =  (io)=>{
             if(time == 30){
                 io.of(bjPath).emit('systemMsg', {content: '已封盘,下注结果以系统开奖为准'});
             }
-            if(time <= 280 && bjOpening && hours > 9){
+            if(time <= 280 && bjOpening){
                 sendOpenResult(bjType);
             }
         }
@@ -121,21 +125,18 @@ let socketFunc =  (io)=>{
         console.log('admin user connected');
 
         socket.on('adminLogin', async(data)=>{
-            console.log('=----------',data)
             socket.emit('adminLogin',{test: 'logined'});
         });
         
     });
     
-    
-
     const connection = (socket, path) => {
         console.log('a user connected:'+path);
 
         //监听新用户加入
         socket.on('login', async(data)=> {
             //将新加入用户的唯一标识当作socket的名称，后面退出的时候会用到
-            let {user, roomId, roomType} = data;
+            let {user, roomId, roomType, roomLevel} = data;
             let roomNumber = `${roomType}-${roomId}`;
 
             if(socket.user_id) return;
@@ -143,6 +144,7 @@ let socketFunc =  (io)=>{
             socket.user_id = user.user_id;
             socket.roomId = roomId;
             socket.roomType = roomType;
+            socket.roomLevel = roomLevel;
             socket.roomNumber = roomNumber;
 
             if (!roomInfo[roomNumber]) {
@@ -187,10 +189,13 @@ let socketFunc =  (io)=>{
                 return;
             }
 
+            if(playType == 2 && !type) type = 'point';
+
             let results = await myTransaction([
                 {//下注
                     sql: bottomPourSql.insert,
-                    params: [user.user_id, playType, money, type, number, serial_number, socket.roomId, socket.roomType]
+                    params: [user.user_id, playType, money, type, number, serial_number,
+                        socket.roomId, socket.roomLevel, socket.roomType]
                 },
                 {//用户减分
                     sql: "update users set integral = (integral - ?) where user_id = ?",
@@ -258,7 +263,6 @@ async function loadRecord(type, callback){
     if(lotteryRs && lotteryRs.serial_number){
         callback && callback(lotteryRs);
     }else{
-        console.log('-------loadRecord',type)
         setTimeout(async ()=>{
             loadRecord(type, callback);
         },500);

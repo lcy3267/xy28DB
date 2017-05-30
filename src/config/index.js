@@ -63,6 +63,6 @@ export const notToken = [
     "/users/login",
     "/users/pcLogin",
     "/users/register",
-    "/system/rooms"
+    "/system/rooms",
 ]
 

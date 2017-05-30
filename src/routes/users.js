@@ -3,16 +3,31 @@ import userSQL from '../db/sql/userSql';
 import md5 from 'blueimp-md5';
 const router = express.Router();
 // 使用DBConfig.js的配置信息创建一个MySQL连接池
-import {dbQuery, myTransaction} from '../db/index';
-import {responseJSON} from '../common/index';
+import {dbQuery} from '../db/index';
+import {responseJSON, formatPage} from '../common/index';
 import {key} from '../config/';
 import { getCnaOpenTime } from '../socket/util';
 import jwt from 'jsonwebtoken';
 
 // 添加用户
 router.get('/list', async (req, res, next) => {
-    let users = await dbQuery(userSQL.queryAll);
-    responseJSON(res, {users});
+
+    const {pageIndex, pageSize, searchKey} = req.query;
+
+    const likeSql = searchKey? ` and account like '%${searchKey}%'`:'';
+
+    const sql = formatPage('select * from users where user_type = 2 and status = 1'+likeSql, pageIndex, pageSize);
+
+    let users = await dbQuery(sql);
+
+    let rs = await dbQuery('select count(user_id) as count from users where user_type = 2 and status = 1');
+
+    if(users){
+        responseJSON(res, {users, count: rs[0].count});
+    }else{
+        responseJSON(res);
+    }
+
 });
 
 // 添加用户
