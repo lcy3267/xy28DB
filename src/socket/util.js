@@ -1,6 +1,9 @@
 /**
  * Created by chengyuan on 2017/4/20.
  */
+import {dbQuery, myTransaction} from '../db/index';
+
+
 //与app 相差35秒
 export function  getCnaOpenTime(){
     let today = new Date();
@@ -82,6 +85,14 @@ export const getUserSocket =  (io,user_id) => {
 export const emitAll = (io, emitType, message = {})=>{
     io.of('/bj').emit(emitType, message);
     io.of('/cnd').emit(emitType, message);
+}
+
+export const updateUserIntegral = async (io,user_id)=>{
+    let integralRs = await dbQuery("select integral from users where user_id = ?",[user_id]);
+    let socket = getUserSocket(io,user_id);
+    if(socket){
+        socket.emit('updateIntegral', {integral: integralRs[0].integral});
+    }
 }
 
 

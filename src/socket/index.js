@@ -17,14 +17,17 @@ let socketFunc =  (io)=>{
         bjPath = '/bj';
     const cndType = 2,
         cndPath = '/cnd';
-    let hours = new Date().getHours();
+    let hours = new Date().getHours(),
+        minutes = new Date().getMinutes();
 
     let bjResult = null,
         cndResult = null,
         cndT = getCnaOpenTime(),
         bjT = getBjOpenTime(),
         cndOpening = cndT < 30 || cndT > 180,
-        bjOpening = (hours >= 0 && hours < 24) && (bjT < 30 || bjT > 270);
+        bjOpening =  bjT < 30 || bjT > 270,
+        bjClose = (hours < 9 && hours >= 0) || (hours == 23 && minutes >= 55),
+        cndClose = hours == 19 || hours == 20;
 
     let bjTimeout = null;
     let cndTimeout = null;
@@ -38,16 +41,17 @@ let socketFunc =  (io)=>{
 
         if (rs && rs.err_code == 0) {
             let {result, clearUsers} = rs;
-
             console.log('------已开奖')
             console.log(result);
             console.log(clearUsers);
             if(type == bjType){
                 bjOpening = false;
                 bjResult = result;
+                console.log('北京开奖时间:'+getBjOpenTime());
             }else{
                 cndOpening = false;
                 cndResult = result;
+                console.log('加拿大开奖时间:'+getCnaOpenTime());
             }
 
             for (let k of Object.keys(clearUsers)){
@@ -71,24 +75,33 @@ let socketFunc =  (io)=>{
     let cndTime = null;
     let cndTimer = setInterval(()=>{
         let time = getCnaOpenTime();
-        if(time <= 30){
+        if(time < 30 || cndClose){
             cndOpening = true;
+        }else{
+            if(time == 30){
+                io.of(cndPath).emit('systemMsg', {content: '已封盘,下注结果以系统开机为准'});
+            }
+            if(time <= 210 && cndOpening){
+                sendOpenResult(cndType);
+            }
         }
-        if(time <= 210 && cndOpening){
-            sendOpenResult(cndType);
-        }
-        io.of(cndPath).emit('updateStatus', {opening: cndOpening, time});
+
+        io.of(cndPath).emit('updateStatus', {opening: cndOpening, time: time -30});
     },1000);
 
     let chinaTimer = setInterval(()=>{
         let time = getBjOpenTime();
-        if(time <= 30 || hours < 9){
+        if(time < 30 || bjClose){
             bjOpening = true;
+        }else{
+            if(time == 30){
+                io.of(bjPath).emit('systemMsg', {content: '已封盘,下注结果以系统开奖为准'});
+            }
+            if(time <= 280 && bjOpening && hours > 9){
+                sendOpenResult(bjType);
+            }
         }
-        if(time <= 280 && bjOpening && hours > 9){
-            sendOpenResult(bjType);
-        }
-        io.of(bjPath).emit('updateStatus', {opening: bjOpening, time});
+        io.of(bjPath).emit('updateStatus', {opening: bjOpening, time: time -30});
     },1000);
 
     //chinaTimer && clearInterval(chinaTimer);
@@ -102,8 +115,23 @@ let socketFunc =  (io)=>{
     var cndNsp = io.of(cndPath);
     cndNsp.on('connection', (socket)=>connection(socket, cndPath));
 
+    //admin
+    io.on('connection', (socket)=>{
+
+        console.log('admin user connected');
+
+        socket.on('adminLogin', async(data)=>{
+            console.log('=----------',data)
+            socket.emit('adminLogin',{test: 'logined'});
+        });
+        
+    });
+    
+    
+
     const connection = (socket, path) => {
-        console.log('a user connected');
+        console.log('a user connected:'+path);
+
         //监听新用户加入
         socket.on('login', async(data)=> {
             //将新加入用户的唯一标识当作socket的名称，后面退出的时候会用到
@@ -153,7 +181,13 @@ let socketFunc =  (io)=>{
         socket.on('bet', async(bet)=> {
             let {user, money, type, number, serial_number, playType} = bet;
 
-            let rs = await myTransaction([
+            let rs = await dbQuery(usersSql.queryUserIntegral, [user.user_id]);
+
+            if(rs[0].integral < money){
+                return;
+            }
+
+            let results = await myTransaction([
                 {//下注
                     sql: bottomPourSql.insert,
                     params: [user.user_id, playType, money, type, number, serial_number, socket.roomId, socket.roomType]
@@ -168,7 +202,10 @@ let socketFunc =  (io)=>{
                 }
             ]);
 
-            if (rs) {
+            if (results) {
+
+                bet.id = results[0].insertId;
+
                 let integralRs = await dbQuery(usersSql.queryUserIntegral, [user.user_id]);
                 //向所有客户端广播发布的消息
                 io.of(path).to(socket.roomNumber).emit('bet', {bet});
@@ -209,8 +246,6 @@ let socketFunc =  (io)=>{
                 socket.leave(socket.roomNumber);    // 退出房间
 
                 io.of(path).to(socket.roomNumber).emit('logout', {user: loginOutUser});
-
-                console.log(loginOutUser.name + '退出了聊天室:' + socket.roomNumber);
             }
         });
     }

@@ -58,11 +58,12 @@ app.disable('etag');
 app.use('/', require('./routes/index'));
 app.use('/users', require('./routes/users'));
 app.use('/gameRules', require('./routes/gameRules')(socket));
-app.use('/betRecord', require('./routes/betRecord'));
+app.use('/bet', require('./routes/bet')(socket));
 app.use('/lottery', require('./routes/lottery'));
 app.use('/system', require('./routes/system'));
 app.use('/recharge', require('./routes/recharge')(socket));
 app.use('/withdraw', require('./routes/withdraw'));
+app.use('/message', require('./routes/message'));
 
 
 // catch 404 and forward to error handler

@@ -13,7 +13,8 @@ export let mysqlConfig = {
 
 export let openResultHost = {
     //hina: "http://123.168kai.com/Open/CurrentOpenOne?code=10014&_=0.06803648965035364",
-    china: "http://www.bwlc.net/bulletin/keno.html",
+    //china: "http://www.bwlc.net/bulletin/keno.html",
+    china: "http://www.dandan28.com/index/forecast/type/1",
 
     //cnd: "http://www.28shence.com/xxw.php?in=2",
     //cnd: "http://www.pc2800.com/?m=Home&c=Index&a=yuce&type=2"
@@ -43,6 +44,7 @@ export let changeType = {
     hs: 5,//回水
     adminInput: 6,//管理员手动充值
     refuseOut: 7,//拒绝提现
+    cancelBet: 8,//取消下注
 }
 
 //充值类型
@@ -61,7 +63,6 @@ export const notToken = [
     "/users/login",
     "/users/pcLogin",
     "/users/register",
-    "/result",
-    "/users/test",
+    "/system/rooms"
 ]
 

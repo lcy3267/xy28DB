@@ -46,10 +46,9 @@ let myRequest = (path, html = false) => {
         });
 }
 
+
 //获取开奖结果
 export let loadLotteryRecord = async(type) => {
-    console.log('-----进来拿取开奖结果-------',type);
-
     let path = type == 2 ? openResultHost.cnd : openResultHost.china;
     let openRs = await myRequest(path, true);
     let obj = {};
@@ -58,7 +57,7 @@ export let loadLotteryRecord = async(type) => {
 
     if (type == 1) {//北京开奖
 
-        const reg = /<tr class="">([\d\D]*)<tr class="odd">/;
+        /*const reg = /<tr class="">([\d\D]*)<tr class="odd">/;
         const tdReg = /<td>(.*)<\/td>/g;
 
         let string = openRs.match(reg)[1];
@@ -74,55 +73,10 @@ export let loadLotteryRecord = async(type) => {
         let one = (+result.slice(0, 6).getSum()) % 10,
             two = (+result.slice(6, 12).getSum()) % 10,
             third = (+result.slice(12, 18).getSum()) % 10,
-            sum = one + two + third;
+            sum = one + two + third;*/
         // 开奖期数 1 ,2 ,3 ,合, 开奖地点:1北京 2加拿大
-        obj = {
-            serial_number: rs[0],
-            one,
-            two,
-            third,
-            sum,
-            type: 1,
-        }
-
-        //开奖结果
-        obj.result = formatResult(sum);
-
-    } else {
-        //cnd 开奖规则===========
-        /*const numbers = [[2, 5, 8, 11, 14, 17], [3, 6, 9, 12, 15, 18], [4, 7, 10, 13, 16, 19]];
-        let result = openRs.c_r.split(',');
-        result = result.sort((a, b)=>a - b);
-        let one = 0, two = 0, third = 0;
-        numbers.map((number, i)=> {
-            number.map((num)=> {
-                switch (i) {
-                    case 0:
-                        one += +result[num - 1];
-                        break;
-                    case 1:
-                        two += +result[num - 1];
-                        break;
-                    case 2:
-                        third += +result[num - 1];
-                        break;
-                }
-            });
-        });
-        one = (+one) % 10,
-            two = (+two) % 10,
-            third = (+third) % 10;*/
-        //===========
-
-
 
         var $ = cheerio.load(openRs);
-
-        /*let one = +$('.s1b').eq(0).text(),
-            two= +$('.s1b').eq(1).text(),
-            third = +$('.s1b').eq(2).text(),
-            sum = one + two + third;*/
-
 
         let serial_number = $('.caculate').prev().text(),
             number = $('.caculate').eq(0).text().split('+'),
@@ -131,6 +85,30 @@ export let loadLotteryRecord = async(type) => {
             third = +number[2],
             sum = one + two + third;
 
+
+        // 开奖期数 1 ,2 ,3 ,合, 开奖地点:1北京 2加拿大
+        obj = {
+            serial_number: serial_number,
+            one,
+            two,
+            third,
+            sum,
+            place: 2,
+        }
+
+        //开奖结果
+        obj.result = formatResult(sum);
+
+    } else {
+
+        var $ = cheerio.load(openRs);
+
+        let serial_number = $('.caculate').prev().text(),
+            number = $('.caculate').eq(0).text().split('+'),
+            one = +number[0],
+            two= +number[1],
+            third = +number[2],
+            sum = one + two + third;
 
         // 开奖期数 1 ,2 ,3 ,合, 开奖地点:1北京 2加拿大
         obj = {
@@ -196,7 +174,7 @@ async function clearing(result) {
         let money = +bottom_pour_money; // 下注金额
         let integral = 0; // 赢取金额
 
-        if(play_type == 1 && result.result.indexOf(bottom_pour_type) > -1){
+        if(play_type == 1 && result.result.indexOf(bottom_pour_type) > -1){//大小单双
             hasWinning = true;
 
             //游戏规则 赔率
@@ -205,9 +183,9 @@ async function clearing(result) {
             let rule = JSON.parse(game_rules[0].combine_rates);
             let rate = rule[bottom_pour_type].value;
 
-            integral = money * (rate -1); // 赢取金额
+            integral = money * rate; // 赢取金额
 
-        }else if(play_type == 2 && bottom_pour_number == result.sum){
+        }else if(play_type == 2 && bottom_pour_number == result.sum){//单点
             hasWinning = true;
 
             let game_rules = await dbQuery('select g.single_point_rates from game_rules g left join rooms r on r.id = ? where g.id = r.rule_single_id',[room_id]);
@@ -218,11 +196,13 @@ async function clearing(result) {
                 rules[14+index] = rules[13-index];
             });
 
-            integral = money * (+rules[bottom_pour_number] - 1);
+            integral = money * (+rules[bottom_pour_number]);
         }
 
         if(hasWinning){
-            clearing.users[user_id].integral += integral;
+            //实际赢取积分(减去本金)
+            let winIntegral = integral - money;
+            clearing.users[user_id].integral += winIntegral;
 
             //中奖 修改相应数据
             await myTransaction([
@@ -232,7 +212,7 @@ async function clearing(result) {
                 },
                 {
                     sql: "update bottom_pour_record set is_winning = ?,win_integral = ? where bottom_pour_id = ?",
-                    params: [1, integral, record.bottom_pour_id],
+                    params: [1, winIntegral, record.bottom_pour_id],
                 },
                 {
                     sql: integralChangeSql.insert,

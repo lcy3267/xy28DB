@@ -102,12 +102,21 @@ router.get('/getUserInfo', async (req, res, next) => {
 router.post('/bindBank', async (req, res, next) => {
     const {user_id} = req.loginUser;
     const {userName, bankName, bankAccount, bankAddress, password} = req.body;
-    let rows = await dbQuery('insert into finance_accounts(user_id,user_name,bank_name,bank_account,bank_address) values(?,?,?,?,?)',
-    [user_id, userName, bankName, bankAccount, bankAddress]);
-    if(rows){
-        responseJSON(res, {rs: rows[0]});
+
+    const pwd = md5(password+key.md5);
+
+    let user = await dbQuery('select * from users where user_id = ? and withdraw_password = ?',[user_id, pwd]);
+
+    if(user.length == 1){
+        let rows = await dbQuery('insert into finance_accounts(user_id,user_name,bank_name,bank_account,bank_address) values(?,?,?,?,?)',
+            [user_id, userName, bankName, bankAccount, bankAddress]);
+        if(rows){
+            responseJSON(res, {rs: rows[0]});
+        }else{
+            responseJSON(res);
+        }
     }else{
-        responseJSON(res);
+        responseJSON(res, {err_code: 5003, msg: 'pwd error'});
     }
 });
 
@@ -125,16 +134,6 @@ router.put('/updateUserSpeak', async (req, res, next) => {
     let rows = await dbQuery('update users set has_speak = ? where user_id = ?',[has_speak,user_id]);
 
     responseJSON(res, {rs: rows});
-});
-
-
-
-router.get('/test', async (req, res, next) => {
-    const {user_id, has_speak} = req.body;
-
-    let game_rules = await dbQuery('select g.combine_rates from game_rules g left join rooms r on r.id = ? where g.id = r.rule_combine_id',[1]);
-
-    responseJSON(res, {rs: game_rules});
 });
 
 

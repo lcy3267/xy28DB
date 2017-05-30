@@ -40,13 +40,14 @@ export let dbQuery = (sql, params = []) => {
  */
 export let myTransaction = async (sqlArr) => {
     let client = new Client();
-    let rs = false;
+    let results = [];
     await client.startTransaction();
     for (var sql of sqlArr){
         let params = sql.params?sql.params:[];
-        rs = await client.executeTransaction(sql.sql,params);
+        let rs = await client.executeTransaction(sql.sql,params);
         if(!rs) break;
+        results.push(rs);
     }
     await client.stopTransaction();
-    return rs;
+    return results;
 }

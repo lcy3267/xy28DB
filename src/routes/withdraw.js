@@ -63,6 +63,25 @@ router.put('/updateWithdraw',async function (req, res, next) {
 });
 
 
+//用户提现记录
+router.get('/userWithDrawRecord', async function (req, res) {
+    const {user_id} = req.loginUser;
+    const {pageIndex, pageSize} = req.query;
+
+    const sql = formatPage('select * from withdraw_record where user_id = ? and status != -1 order by' +
+        ' created_at desc',
+        pageIndex, pageSize);
+
+    let rs = await dbQuery(sql,[user_id]);
+
+    if(rs){
+        responseJSON(res, {records: rs});
+    }else{
+        responseJSON(res)
+    }
+});
+
+
 /*****
  *
  *  用户端接口-----
@@ -110,7 +129,7 @@ router.post('/withdraw', async (req, res, next) => {
     ]);
 
     if(rows){
-        responseJSON(res, rows);
+        responseJSON(res, {});
     }else{
         responseJSON(res);
     }
