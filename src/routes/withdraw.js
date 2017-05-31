@@ -10,7 +10,7 @@ import { integralChangeSql } from '../db/sql';
 import { key, changeType } from '../config/';
 
 //提现记录
-router.get('/records',async function (req, res, next) {
+router.get('/admin/records',async function (req, res, next) {
 
     const {pageIndex, pageSize} = req.query;
 
@@ -30,7 +30,7 @@ router.get('/records',async function (req, res, next) {
 });
 
 //审核提现记录
-router.put('/updateWithdraw',async function (req, res, next) {
+router.put('/admin/updateWithdraw',async function (req, res, next) {
 
     const {id, status} = req.body;
 
@@ -62,7 +62,11 @@ router.put('/updateWithdraw',async function (req, res, next) {
     }
 });
 
-
+/*****
+ *
+ *  用户端接口-----
+ *
+ * ****/
 //用户提现记录
 router.get('/userWithDrawRecord', async function (req, res) {
     const {user_id} = req.loginUser;
@@ -81,12 +85,6 @@ router.get('/userWithDrawRecord', async function (req, res) {
     }
 });
 
-
-/*****
- *
- *  用户端接口-----
- *
- * ****/
 router.get('/queryWithdrawPwd', async (req, res, next) => {
     const user = req.loginUser;
     let rows = await dbQuery('select withdraw_password from users where user_id = ?',[user.user_id]);

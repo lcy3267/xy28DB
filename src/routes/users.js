@@ -10,7 +10,7 @@ import { getCnaOpenTime } from '../socket/util';
 import jwt from 'jsonwebtoken';
 
 // 添加用户
-router.get('/list', async (req, res, next) => {
+router.get('/admin/list', async (req, res, next) => {
 
     const {pageIndex, pageSize, searchKey} = req.query;
 
@@ -73,8 +73,24 @@ router.post('/login', async (req, res, next) => {
     responseJSON(res, rs);
 });
 
+router.put('/updateLoginPwd', async (req, res, next) => {
+    const {user_id} = req.loginUser;
+    const {pwd, oldPwd} = req.body;
+    const newPwd = md5(pwd+key.md5);
+
+    const old = md5(oldPwd+key.md5);
+
+    let rs = await dbQuery('select user_id from users where password = ? and user_id = ?',[old, user_id]);
+    if(rs && rs.length > 0){//修改密码
+        let rows = await dbQuery('update users set password = ? where user_id = ?',[newPwd, user_id]);
+        rows ? responseJSON(res, {rows}): responseJSON(res, {});
+    }else{
+        responseJSON(res, {err_code: 201, msg: 'password error'});
+    }
+});
+
 // 登录
-router.post('/pcLogin', async (req, res, next) => {
+router.post('/admin/pcLogin', async (req, res, next) => {
     let password = md5(req.body.password+key.md5);
     let rows = await dbQuery(userSQL.userLogin,[req.body.account]);
     let rs = null;
@@ -143,7 +159,7 @@ router.get('/bankCards', async (req, res, next) => {
     responseJSON(res, {cards: rows});
 });
 
-router.put('/updateUserSpeak', async (req, res, next) => {
+router.put('/admin/updateUserSpeak', async (req, res, next) => {
     const {user_id, has_speak} = req.body;
 
     let rows = await dbQuery('update users set has_speak = ? where user_id = ?',[has_speak,user_id]);
@@ -151,10 +167,5 @@ router.put('/updateUserSpeak', async (req, res, next) => {
     responseJSON(res, {rs: rows});
 });
 
-
-/* GET users listing. */
-router.get('/', function (req, res, next) {
-    res.json({rs: getCnaOpenTime()});
-});
 
 module.exports = router;

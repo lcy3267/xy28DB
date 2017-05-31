@@ -9,7 +9,7 @@ import {responseJSON, formatPage} from '../common/index';
 var {dbQuery} = require('../db/index');
 
 //查询游戏玩法
-router.get('/record',async function (req, res, next) {
+router.get('/admin/record',async function (req, res, next) {
 
     const {pageIndex, pageSize, type } = req.query;
 

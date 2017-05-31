@@ -19,7 +19,7 @@ var {dbQuery, myTransaction} = require('../db/index');
 const bet = (io)=> {
 
     //下注记录
-    router.get('/records',async function (req, res, next) {
+    router.get('/admin/records',async function (req, res, next) {
 
         const {pageIndex, pageSize} = req.query;
 

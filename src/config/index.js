@@ -61,8 +61,9 @@ export  let er_codes = {
 
 export const notToken = [
     "/users/login",
-    "/users/pcLogin",
+    "/users/admin/pcLogin",
     "/users/register",
+    "/system/rooms",
     "/system/rooms",
 ]
 

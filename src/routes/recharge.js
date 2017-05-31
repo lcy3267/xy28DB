@@ -9,8 +9,8 @@ import {usersSql, integralChangeSql} from '../db/sql';
 
 
 const recharge = (io)=>{
-    //获取收款账号
-    router.get('/list', async (req, res, next) => {
+    //充值申请记录
+    router.get('/admin/list', async (req, res, next) => {
 
         const {pageIndex, pageSize} = req.query;
 
@@ -48,7 +48,7 @@ const recharge = (io)=>{
     });
 
     // 通过用户充值申请
-    router.put('/approveRecharge', async (req, res, next) => {
+    router.put('/admin/approveRecharge', async (req, res, next) => {
 
         let id = +req.body.id;
 
@@ -82,7 +82,7 @@ const recharge = (io)=>{
     });
 
     //管理员手动充值积分
-    router.put('/adminRecharge', async (req, res, next) => {
+    router.put('/admin/adminRecharge', async (req, res, next) => {
         let user = req.loginUser;
 
         if(user.user_type != 1){

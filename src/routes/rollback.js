@@ -7,10 +7,9 @@ import { rechargeType, changeType } from '../config/index';
 import { getUserSocket } from '../socket/util';
 import {usersSql, integralChangeSql} from '../db/sql';
 
-
 const recharge = (io)=>{
-    //获取收款账号
-    router.get('/countRollback', async (req, res, next) => {
+    //回水计算
+    router.get('/admin/countRollback', async (req, res, next) => {
         const {date} = req.query;
 
         const users = await rollbackUsers(date);
@@ -22,7 +21,7 @@ const recharge = (io)=>{
         }
     });
 
-    router.get('/rollbackRecord', async (req, res)=>{
+    router.get('/admin/rollbackRecord', async (req, res)=>{
 
         const {pageIndex, pageSize, date} = req.query;
 
@@ -40,7 +39,7 @@ const recharge = (io)=>{
 
     })
 
-    router.put('/doRollback', async (req, res,)=>{
+    router.put('/admin/doRollback', async (req, res,)=>{
         const {date} = req.body;
 
         const users = await rollbackUsers(date);
@@ -105,6 +104,18 @@ const recharge = (io)=>{
 
         result?responseJSON(res,{}):responseJSON(res);
 
+    });
+
+    router.get('/userRollbackRecords', async (req, res)=>{
+        const {pageIndex, pageSize, level} = req.query;
+        const {user_id} = req.loginUser;
+
+        const sql = formatPage('select * from rollback_records where user_id = ?',
+        pageIndex, pageSize);
+
+        const rows = await dbQuery(sql,[user_id]);
+
+        rows ? responseJSON(res, {records: rows}) : responseJSON(res,{});
     });
 
     return router;

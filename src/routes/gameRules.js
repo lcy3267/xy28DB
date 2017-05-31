@@ -14,13 +14,13 @@ var {dbQuery} = require('../db/index');
 const gameRules = (io)=>{
 
     //查询游戏玩法
-    router.get('/list',async function (req, res, next) {
+    router.get('/admin/list',async function (req, res, next) {
         let rows = await dbQuery('SELECT * FROM game_rules WHERE status != -1');
         responseJSON(res, {rules: rows});
     });
 
     //添加游戏赔率规则
-    router.post('/addGameRules',async function (req, res, next) {//
+    router.post('/admin/addGameRules',async function (req, res, next) {//
         let {type, name, rates} = req.body;
         const field = type == 1 ? 'combine_rates' : 'single_point_rates';
         rates = type == 1 ? JSON.stringify(rates) : rates;
@@ -30,7 +30,7 @@ const gameRules = (io)=>{
     });
 
     //修改赔率
-    router.put('/updateRate',async function (req, res, next) {
+    router.put('/admin/updateRate',async function (req, res, next) {
         let {id, rate} = req.body;
         let rows = await dbQuery('update game_rules set rate = ? where id = ?',[rate, id]);
         if(rows){
@@ -41,7 +41,7 @@ const gameRules = (io)=>{
         }
     });
     
-    router.put('/updateRoomGameRule',async function (req, res, next) {
+    router.put('/admin/updateRoomGameRule',async function (req, res, next) {
         let {ruleId, roomId, playType} = req.body;
         let filed = playType == 1 ? 'rule_combine_id' : 'rule_single_id';
         let rows = await dbQuery(`update rooms set ${filed} = ? where id = ?`,[ruleId, roomId]);

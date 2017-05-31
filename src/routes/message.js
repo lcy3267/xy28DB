@@ -9,7 +9,7 @@ import {responseJSON, formatPage} from '../common/index';
 var {dbQuery} = require('../db/index');
 
 //发送系统消息
-router.post('/addMessage',async function (req, res, next) {
+router.post('/admin/addMessage',async function (req, res, next) {
 
     const {title, content} = req.body;
 
@@ -24,7 +24,7 @@ router.post('/addMessage',async function (req, res, next) {
 });
 
 //删除系统消息
-router.put('/deleteMessage',async function (req, res, next) {
+router.put('/admin/deleteMessage',async function (req, res, next) {
 
     const {id} = req.body;
 
@@ -42,8 +42,6 @@ router.get('/systemList', async function (req, res, next) {
     const user = req.loginUser;
 
     const {pageIndex, pageSize} = req.query;
-
-    console.log(pageIndex, pageSize,'-----')
 
     let column = 'id,title,created_at';
 

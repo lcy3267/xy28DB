@@ -14,7 +14,7 @@ router.get('/rooms',async function (req, res, next) {
     rows?responseJSON(res, {rooms: rows}):responseJSON(res);
 })
 
-//房间列表
+//房间详情
 router.get('/roomInfo',async function (req, res, next) {
     const {roomId} = req.query;
     console.log('roomId',roomId)
@@ -23,13 +23,13 @@ router.get('/roomInfo',async function (req, res, next) {
 });
 
 //回水规则列表
-router.get('/rollbackRules',async function (req, res, next) {
+router.get('/admin/rollbackRules',async function (req, res, next) {
     let rows = await dbQuery("select * from rollback_rules where status != -1");
     responseJSON(res, {rules: rows});
 });
 
 //新增回水规则
-router.post('/addRollback',async function (req, res, next) {
+router.post('/admin/addRollback',async function (req, res, next) {
     const {name, levels, rates, ruleLevel} = req.body;
 
     let rows = await dbQuery("insert into rollback_rules(name,rule_level,level_1,level_2,level_3,level_4,rate_1,rate_2,rate_3,rate_4) values(?,?,?,?,?,?,?,?,?,?)",
@@ -43,7 +43,7 @@ router.post('/addRollback',async function (req, res, next) {
 });
 
 //修改房间状态
-router.put('/updateRoomStatus',async function (req, res, next) {
+router.put('/admin/updateRoomStatus',async function (req, res, next) {
     const {roomId, status} = req.body;
 
     let rows = await dbQuery("update rooms set status = ? where id = ?",[status, roomId]);
@@ -51,7 +51,7 @@ router.put('/updateRoomStatus',async function (req, res, next) {
     rows?responseJSON(res, {rs: rows}):responseJSON(res);
 });
 //修改房间禁言状态
-router.put('/updateRoomSpeak',async function (req, res, next) {
+router.put('/admin/updateRoomSpeak',async function (req, res, next) {
     const {roomId, is_speak} = req.body;
 
     let rows = await dbQuery("update rooms set is_speak = ? where id = ?",[is_speak, roomId]);
@@ -60,7 +60,7 @@ router.put('/updateRoomSpeak',async function (req, res, next) {
 });
 
 //修改房间回水规则
-router.put('/updateRollbackRules',async function (req, res, next) {
+router.put('/admin/updateRollbackRules',async function (req, res, next) {
     const {roomId, rollbackTypeId} = req.body;
 
     let rows = await dbQuery("update rooms set rollback_rule_id = ? where id = ?",[rollbackTypeId, roomId]);
