@@ -9,7 +9,7 @@ import {responseJSON, formatPage} from '../common/index';
 var {dbQuery} = require('../db/index');
 
 //查询游戏玩法
-router.get('/admin/record',async function (req, res, next) {
+router.get('/records',async function (req, res, next) {
 
     const {pageIndex, pageSize, type } = req.query;
 
@@ -18,7 +18,8 @@ router.get('/admin/record',async function (req, res, next) {
 
     let rows = await dbQuery(sql, [type]);
 
-    let rs = await dbQuery('select count(lottery_record_id) as count from lottery_record where lottery_place_type = ?',[type]);
+    let rs = await dbQuery('select count(lottery_record_id) as count from lottery_record where lottery_place_type = ? ' +
+        'and is_open = 1',[type]);
 
     if(rows){
         responseJSON(res, {records: rows, count: rs[0].count});

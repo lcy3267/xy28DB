@@ -11,8 +11,6 @@ router.all('/*', function(req, res, next) {
 
   const auth = path.split('/')[2];
 
-  console.log(auth,'=====')
-
   if(notToken.includes(req.path)) return next();
   let token = req.header('Token');
   if (token) {

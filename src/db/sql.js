@@ -6,5 +6,6 @@ export let integralChangeSql = {
 }
 export let usersSql = {
     queryUserIntegral: "select integral from users where user_id = ?",
-    updateUserIntegral: "update users set integral = (integral + ?),updated_at = now() where user_id = ?"
+    updateUserIntegral: "update users set integral = (integral + ?),updated_at = now() where user_id = ?",
+    addUserMessage: 'insert into messages(notice_type,user_id,title,content) values(2,?,?,?)',
 }

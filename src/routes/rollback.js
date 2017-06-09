@@ -61,11 +61,11 @@ const recharge = (io)=>{
 
 
                 let rs = await myTransaction([
-                    {
+                    {//修改用户积分
                         sql:'update users set integral = (integral + ?) where user_id = ?',
                         params: [rollbackIntegral, user_id],
                     },
-                    {
+                    {//添加回水记录
                         sql: 'insert into rollback_records(user_id,integral,room_level) values(?,?,?)',
                         params: [user_id, rollbackIntegral, roomLevel]
                     },
@@ -73,10 +73,14 @@ const recharge = (io)=>{
                         sql: integralChangeSql.insert,
                         params: [user_id, rollbackIntegral, changeType.hs],
                     },
-                    {
+                    {//
                         sql:`update bottom_pour_record set is_rollback = 2 where user_id = ?
                          and created_at like '${date}%'`,
                         params: [user_id],
+                    },
+                    {//添加用户消息
+                        sql: usersSql.addUserMessage,
+                        params: [user_id, '回水成功', `${date}日回水已成功充值到您的账户,回水金额为${rollbackIntegral},请注意查收`],
                     },
                 ]);
 

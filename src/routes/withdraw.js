@@ -6,7 +6,7 @@ var router = express.Router();
 import md5 from 'blueimp-md5';
 import {responseJSON, formatPage} from '../common/index';
 var {dbQuery, myTransaction} = require('../db/index');
-import { integralChangeSql } from '../db/sql';
+import {usersSql, integralChangeSql} from '../db/sql';
 import { key, changeType } from '../config/';
 
 //提现记录
@@ -34,8 +34,8 @@ router.put('/admin/updateWithdraw',async function (req, res, next) {
 
     const {id, status} = req.body;
 
-    const userIdRs = await dbQuery('select user_id,withdraw_money from withdraw_record where id = ?',[id]);
-    const {user_id, withdraw_money} = userIdRs[0];
+    const userIdRs = await dbQuery('select user_id,withdraw_money,bank_name from withdraw_record where id = ?',[id]);
+    const {user_id, withdraw_money, bank_name} = userIdRs[0];
 
     let rs = false;
 
@@ -50,9 +50,22 @@ router.put('/admin/updateWithdraw',async function (req, res, next) {
                 sql: integralChangeSql.insert,
                 params: [user_id, withdraw_money, changeType.refuseOut],
             },
+            {
+                sql: usersSql.addUserMessage,
+                params: [user_id, '提现申请被拒绝', '管理员拒绝了您的提现申请,详细原因请咨询客服!'],
+            },
         ]);
     }else if(status == 2){
-        rs = await dbQuery('update withdraw_record set status = ? where id = ?',[status, id]);
+        rs = await myTransaction([
+            {
+                sql: 'update withdraw_record set status = ? where id = ?',
+                params: [status, id],
+            },
+            {
+                sql: usersSql.addUserMessage,
+                params: [user_id, '提现成功', `提现成功!已成功提现至您的"${bank_name}"银行卡,提现金额为${withdraw_money},请注意查收`],
+            },
+        ]);
     }
 
     if(rs){

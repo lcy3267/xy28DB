@@ -69,6 +69,10 @@ const recharge = (io)=>{
                 sql: "update recharge_integral_record set status = 2,updated_at = now() where id = ?",
                 params: [id]
             },
+            {//添加用户通知
+                sql: usersSql.addUserMessage,
+                params: [user_id, `充值成功`,`管理员已成功给您充值${integral}元宝,请查收!`]
+            },
         ]);
 
         if(rs){

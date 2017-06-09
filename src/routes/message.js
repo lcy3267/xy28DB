@@ -60,6 +60,28 @@ router.get('/systemList', async function (req, res, next) {
     }
 });
 
+router.get('/userMessages', async function (req, res, next) {
+    const {user_id} = req.loginUser;
+
+    const {pageIndex, pageSize} = req.query;
+
+    let column = 'id,title,created_at';
+
+    let sql = formatPage(`select ${column} from messages where status !=-1 and notice_type = 2
+     and user_id = ? order by created_at desc`, pageIndex, pageSize);
+
+    let userMessages = await dbQuery(sql,[user_id]);
+
+    let rs = await dbQuery("select count(id) as count from messages where status != -1" +
+        " and user_id = ? and notice_type = 2",[user_id]);
+
+    if(userMessages){
+        responseJSON(res, {userMessages, count: rs[0].count});
+    }else{
+        responseJSON(res);
+    }
+});
+
 //系统消息详情
 router.get('/detail', async function (req, res, next) {
 

@@ -4,6 +4,7 @@ import {loadLotteryRecord, clearingIntegral} from '../common/lotteryUtil';
 import bottomPourSql from '../db/sql/bottomPourSql';
 import {integralChangeSql, usersSql} from '../db/sql';
 import {changeType} from '../config/index';
+import moment from 'moment';
 import schedule from 'node-schedule';
 import { getUserSocket, getBjOpenTime, getCnaOpenTime } from './util';
 
@@ -36,6 +37,40 @@ let socketFunc =  (io)=>{
     let bjTimeout = null;
     let cndTimeout = null;
 
+    /**
+     * ------------
+     *    定时器
+     * ------------
+     */
+    //北京维护
+    let rule = new schedule.RecurrenceRule();
+    rule.hour = 23;
+    rule.minute = 55;
+    let closeBj = schedule.scheduleJob(rule, function(){
+        bjClose = true;
+    });
+    //北京开启
+    rule.hour = 9;
+    rule.minute = 0;
+    var openBj = schedule.scheduleJob(rule, function(){
+        bjClose = false;
+    });
+
+    rule.hour = 19;
+    rule.minute = 0;
+    let closeCnd = schedule.scheduleJob(rule, function(){
+        cndClose = true;
+    });
+    //加拿大关闭开启
+    rule.hour = 20;
+    rule.minute = 0;
+    var openCnd = schedule.scheduleJob(rule, function(){
+        cndClose = false;
+    });
+    //============================//
+
+
+
 
     const sendOpenResult = async (type)=>{
 
@@ -51,11 +86,9 @@ let socketFunc =  (io)=>{
             if(type == bjType){
                 bjOpening = false;
                 bjResult = result;
-                console.log('北京开奖时间:'+getBjOpenTime());
             }else{
                 cndOpening = false;
                 cndResult = result;
-                console.log('加拿大开奖时间:'+getCnaOpenTime());
             }
 
             for (let k of Object.keys(clearUsers)){
@@ -78,34 +111,42 @@ let socketFunc =  (io)=>{
 
     let cndTime = null;
     let cndTimer = setInterval(()=>{
-        let time = getCnaOpenTime();
-        if(time < 30 || cndClose){
-            cndOpening = true;
-        }else{
-            if(time == 30){
-                io.of(cndPath).emit('systemMsg', {content: '已封盘,下注结果以系统开机为准'});
-            }
-            if(time <= 210 && cndOpening){
-                sendOpenResult(cndType);
+        let time = 0;
+        if(!cndClose){
+            time = getCnaOpenTime();
+
+            if(time < 30){
+                cndOpening = true;
+            }else{
+                if(time == 30){
+                    io.of(cndPath).emit('systemMsg', {content: '已封盘,下注结果以系统开机为准'});
+                }
+                if(time <= 210 && cndOpening){
+                    sendOpenResult(cndType);
+                }
             }
         }
-
-        io.of(cndPath).emit('updateStatus', {opening: cndOpening, time: time -30});
+        io.of(cndPath).emit('updateStatus', {opening: cndOpening, time: time -30, isClose: cndClose});
     },1000);
 
     let chinaTimer = setInterval(()=>{
-        let time = getBjOpenTime();
-        if(time < 30 || bjClose){
-            bjOpening = true;
-        }else{
-            if(time == 30){
-                io.of(bjPath).emit('systemMsg', {content: '已封盘,下注结果以系统开奖为准'});
-            }
-            if(time <= 280 && bjOpening){
-                sendOpenResult(bjType);
+        let time = 0;
+
+        if(!bjClose){
+            time = getBjOpenTime();
+            if(time < 30){
+                bjOpening = true;
+            }else{
+                if(time == 30){
+                    io.of(bjPath).emit('systemMsg', {content: '已封盘,下注结果以系统开奖为准'});
+                }
+                if(time <= 280 && bjOpening){
+                    sendOpenResult(bjType);
+                }
             }
         }
-        io.of(bjPath).emit('updateStatus', {opening: bjOpening, time: time -30});
+
+        io.of(bjPath).emit('updateStatus', {opening: bjOpening, time: time -30, isClose: bjClose});
     },1000);
 
     //chinaTimer && clearInterval(chinaTimer);
@@ -162,7 +203,7 @@ let socketFunc =  (io)=>{
                     opening: roomType == bjType ? bjOpening : cndOpening,
                     joinUser: user,
                     integral: integralRs[0].integral,
-                    lotteryRs: result
+                    lotteryRs: result,
                 });
             }
 
@@ -210,6 +251,7 @@ let socketFunc =  (io)=>{
             if (results) {
 
                 bet.id = results[0].insertId;
+                bet.created_at = moment().format('YYYY-MM-DD HH:mm');
 
                 let integralRs = await dbQuery(usersSql.queryUserIntegral, [user.user_id]);
                 //向所有客户端广播发布的消息

@@ -34,6 +34,16 @@ const bet = (io)=> {
         responseJSON(res, {records: rows, count: rs[0].count});
     });
 
+    router.get('/roomBetRecords', async function (req, res) {
+        const { roomId } = req.query;
+
+        const rows = await dbQuery('select u.name name,u.avatar_picture_url avatar_picture_url,b.*' +
+            ' from bottom_pour_record b left join users u on u.user_id = b.user_id ' +
+            ' where room_id = ? order by created_at desc limit 0,10',[ roomId ]);
+
+        rows?responseJSON(res, {records: rows}):responseJSON(res,{});
+    })
+
     router.put('/cancelBet', async function (req, res) {
         const {user_id} = req.loginUser;
 
