@@ -3,7 +3,6 @@
  */
 var express = require('express');
 var router = express.Router();
-var GameRulesSql = require('../db/sql/GameRulesSql');
 import {responseJSON} from '../common/index';
 import { emitAll } from '../socket/util';
 
