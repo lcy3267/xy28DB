@@ -6,7 +6,7 @@ export let key = {
 export let mysqlConfig = {
     host: '127.0.0.1',
     user: 'root',
-    password: 'yuan3267',
+    password: '1234',
     database:'xy28',
     port: 3306
 }
