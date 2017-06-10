@@ -7,7 +7,21 @@ import babel from 'gulp-babel';
 
 gulp.task('transform', () => {
     return gulp.src('src/**/*.js')
-        .pipe(babel())
+        .pipe(babel({
+            presets: ['es2015', 'es2016', 'es2017'],
+            plugins: [
+                [
+                    "transform-runtime", {
+                    "polyfill": false,
+                    "regenerator": true
+                }
+                ]
+            ]
+        }))
+        .on('error', function(err){
+            console.log(err.stack);
+            this.emit('end');
+        })
         .pipe(gulp.dest('lib'));
 });
 

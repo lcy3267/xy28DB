@@ -4,7 +4,7 @@ export let key = {
 };
 
 export let mysqlConfig = {
-    host: '127.0.0.1',
+    host: 'localhost',//39.108.105.220
     user: 'root',
     password: '1234',
     database:'xy28',
