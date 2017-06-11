@@ -30,7 +30,17 @@ gulp.task('watch', () => {
         .pipe(watch('src/**/*.js', {
             verbose: true
         }))
-        .pipe(babel())
+        .pipe(babel({
+            presets: ['es2015', 'es2016', 'es2017'],
+            plugins: [
+                [
+                    "transform-runtime", {
+                    "polyfill": false,
+                    "regenerator": true
+                }
+                ]
+            ]
+        }))
         .pipe(gulp.dest('lib'));
 });
 

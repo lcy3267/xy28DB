@@ -1,7 +1,5 @@
 import express from 'express';
 const router = express.Router();
-import {dbQuery} from '../db/';
-import {loadLotteryRecord,clearingIntegral} from '../common/lotteryUtil';
 import {notToken, key} from '../config/index';
 import jwt from 'jsonwebtoken';
 

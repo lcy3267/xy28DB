@@ -57,25 +57,6 @@ export let loadLotteryRecord = async(type) => {
 
     if (type == 1) {//北京开奖
 
-        /*const reg = /<tr class="">([\d\D]*)<tr class="odd">/;
-        const tdReg = /<td>(.*)<\/td>/g;
-
-        let string = openRs.match(reg)[1];
-        string = string.match(tdReg);
-
-        const rs = string.map((str)=> {
-            return str.replace(/<td>|<\/td>/g, "");
-        });
-
-        let result = rs[1].split(',');
-        result = result.sort((a, b)=>a - b);
-        //bj开奖规则
-        let one = (+result.slice(0, 6).getSum()) % 10,
-            two = (+result.slice(6, 12).getSum()) % 10,
-            third = (+result.slice(12, 18).getSum()) % 10,
-            sum = one + two + third;*/
-        // 开奖期数 1 ,2 ,3 ,合, 开奖地点:1北京 2加拿大
-
         var $ = cheerio.load(openRs);
 
         let serial_number = $('.caculate').prev().text(),
@@ -174,7 +155,7 @@ async function clearing(result) {
         let money = +bottom_pour_money; // 下注金额
         let integral = 0; // 赢取金额
 
-        if(play_type == 1 && result.result.indexOf(bottom_pour_type) > -1){//大小单双
+        if(play_type == 1 && result.result.indexOf(bottom_pour_type) > -1){//大小单双,极大,极小
             hasWinning = true;
 
             //游戏规则 赔率
@@ -261,7 +242,17 @@ function formatResult(sum) {
         hasDouble = lotteryType.double;
     }
 
-    return [hasMax, hasDouble, combination];
+    let result = [hasMax, hasDouble, combination]
+
+    if(sum <= 5){
+        result.push(lotteryType.min)
+    }
+
+    if(sum >= 22){
+        result.push(lotteryType.max)
+    }
+
+    return result;
 }
 
 function isJSON(str) {

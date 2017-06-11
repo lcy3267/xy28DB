@@ -1,3 +1,12 @@
+import {key} from '../config/index';
+import jwt from 'jsonwebtoken';
+
+export let validLogin = (token,callback)=>{
+    jwt.verify(token, key.token, function(err, decoded) {
+        callback && callback(err, decoded);
+    });
+}
+
 
 export let formatPage = (sql, pageIndex = 1, pageSize = 10)=>{
     let offset = 0;

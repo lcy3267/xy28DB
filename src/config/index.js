@@ -6,8 +6,8 @@ export let key = {
 export let mysqlConfig = {
     host: 'localhost',//39.108.105.220
     user: 'root',
-    password: '1234',
-    database:'xy28',
+    password: 'yuan3267',//1234
+    database: 'xy28',
     port: 3306
 }
 
@@ -34,6 +34,9 @@ export let lotteryType ={
     maximum: 'max', //极大
     minimum: 'min', //极小
 }
+
+export let _lotteryType = ['big', 'small', 'single', 'double', 'big_single',
+'big_double', 'small_single', 'small_double', 'max', 'min'];
 
 //积分变动类型
 export let changeType = {
