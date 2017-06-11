@@ -90,7 +90,7 @@ let socketFunc =  (io)=>{
                     user_id: -1,
                     name: automationUsers[userNumber],
                 },
-                playType: number,
+                playType: 1,
                 type: _lotteryType[betTypeNum],
                 money: moneyNum*10,
                 created_at: moment().format('YYYY-MM-DD HH:mm')
