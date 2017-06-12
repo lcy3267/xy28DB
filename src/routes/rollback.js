@@ -29,7 +29,7 @@ const recharge = (io)=>{
 
         const sql = formatPage('select r.*,u.account account,u.name name from rollback_records r' +
             ' left join users u on u.user_id = r.user_id' +
-            ' where r.status = 1' + dateSql, pageIndex, pageSize);
+            ' where r.status = 1 order by r.created_at desc' + dateSql, pageIndex, pageSize);
 
         const rs = await dbQuery(sql);
 
@@ -114,7 +114,7 @@ const recharge = (io)=>{
         const {pageIndex, pageSize, level} = req.query;
         const {user_id} = req.loginUser;
 
-        const sql = formatPage('select * from rollback_records where user_id = ?',
+        const sql = formatPage('select * from rollback_records where user_id = ? order by created_at desc',
         pageIndex, pageSize);
 
         const rows = await dbQuery(sql,[user_id]);

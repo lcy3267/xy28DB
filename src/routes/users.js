@@ -9,14 +9,18 @@ import {key} from '../config/';
 import { getCnaOpenTime } from '../socket/util';
 import jwt from 'jsonwebtoken';
 
-// 添加用户
+// 用户列表
 router.get('/admin/list', async (req, res, next) => {
 
     const {pageIndex, pageSize, searchKey} = req.query;
 
-    const likeSql = searchKey? ` and account like '%${searchKey}%'`:'';
+    const likeSql = searchKey? ` and account like '%${searchKey}%' or name like '%${searchKey}%'`:'';
 
-    const sql = formatPage('select * from users where user_type = 2 and status = 1'+likeSql, pageIndex, pageSize);
+    const sql = formatPage('SELECT u.*,' +
+        '(SELECT COUNT(bottom_pour_id) from bottom_pour_record where user_id = u.user_id and status = 1) as bottom_num,' +
+        '(SELECT sum(bottom_pour_money) from bottom_pour_record where user_id = u.user_id and status = 1) as sub_integral,' +
+        '(select sum(win_integral) from bottom_pour_record where user_id = u.user_id and status = 1) as win_integral'+
+        ' from users u where u.user_type = 2 and u.status = 1'+likeSql, pageIndex, pageSize);
 
     let users = await dbQuery(sql);
 
@@ -163,6 +167,14 @@ router.put('/admin/updateUserSpeak', async (req, res, next) => {
     const {user_id, has_speak} = req.body;
 
     let rows = await dbQuery('update users set has_speak = ? where user_id = ?',[has_speak,user_id]);
+
+    responseJSON(res, {rs: rows});
+});
+
+router.put('/admin/updateUserBottom', async (req, res, next) => {
+    const {user_id, can_bottom} = req.body;
+
+    let rows = await dbQuery('update users set can_bottom = ? where user_id = ?',[can_bottom,user_id]);
 
     responseJSON(res, {rs: rows});
 });

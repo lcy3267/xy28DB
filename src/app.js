@@ -62,7 +62,7 @@ app.use('/bet', require('./routes/bet')(socket));
 app.use('/lottery', require('./routes/lottery'));
 app.use('/system', require('./routes/system'));
 app.use('/recharge', require('./routes/recharge')(socket));
-app.use('/withdraw', require('./routes/withdraw'));
+app.use('/withdraw', require('./routes/withdraw')(socket));
 app.use('/message', require('./routes/message'));
 app.use('/rollback', require('./routes/rollback')(socket));
 

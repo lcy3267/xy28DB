@@ -21,13 +21,15 @@ const bet = (io)=> {
     //下注记录
     router.get('/admin/records',async function (req, res, next) {
 
-        const {pageIndex, pageSize} = req.query;
+        const {pageIndex, pageSize, user_id} = req.query;
 
-        const sql = formatPage("select b.*,u.account user_account from bottom_pour_record b" +
-            " left join users u on b.user_id = u.user_id where b.status = 1 order by b.created_at desc",
+        const likeSql = user_id? ` and u.user_id = ${user_id}`:'';
+
+        const sql = formatPage(`select b.*,u.account user_account from users u
+            left join bottom_pour_record b on b.user_id = u.user_id ${likeSql} where b.status = 1 order by b.created_at desc`,
             pageIndex, pageSize);
 
-        let rs = await dbQuery("select count(bottom_pour_id) as count from bottom_pour_record where status != -1");
+        let rs = await dbQuery(`select count(bottom_pour_id) as count from bottom_pour_record u where status != -1 ${likeSql}`);
 
         let rows = await dbQuery(sql);
 

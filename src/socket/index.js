@@ -199,12 +199,21 @@ let socketFunc =  (io)=>{
     cndNsp.on('connection', (socket)=>connection(socket, cndPath));
 
     //admin
-    io.on('connection', (socket)=>{
+    io.of('admin').on('connection', (socket)=>{
 
         console.log('admin user connected');
 
         socket.on('adminLogin', async(data)=>{
             socket.emit('adminLogin',{test: 'logined'});
+        });
+
+        //心跳包
+        socket.on('palpitation', function (){
+            if(socket.id){
+                socket.emit('palpitation',{result: 'success'})
+            }else{
+                socket.emit('palpitation',{result: 'error'})
+            }
         });
         
     });
@@ -270,9 +279,15 @@ let socketFunc =  (io)=>{
         socket.on('bet', async(bet)=> {
             let {user, money, type, number, serial_number, playType} = bet;
 
-            let rs = await dbQuery(usersSql.queryUserIntegral, [user.user_id]);
+            let rs = await dbQuery('select * from users where user_id = ?', [user.user_id]);
 
             if(rs[0].integral < money){
+                return;
+            }
+
+            //禁止下注
+            if(rs[0].can_bottom == -1){
+                io.of(path).to(socket.roomNumber).emit('bet', {err_code: -1});
                 return;
             }
 
