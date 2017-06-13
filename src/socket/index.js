@@ -45,28 +45,32 @@ let socketFunc =  (io)=>{
      * ------------
      */
     //北京维护
-    let rule = new schedule.RecurrenceRule();
-    rule.hour = 23;
-    rule.minute = 55;
-    let closeBj = schedule.scheduleJob(rule, function(){
+    let bj1 = new schedule.RecurrenceRule();
+    bj1.hour = 23;
+    bj1.minute = 55;
+    schedule.scheduleJob(bj1, function(){
         bjClose = true;
     });
     //北京开启
-    rule.hour = 9;
-    rule.minute = 0;
-    var openBj = schedule.scheduleJob(rule, function(){
+    let bj2 = new schedule.RecurrenceRule();
+    bj2.hour = 9;
+    bj2.minute = 0;
+    schedule.scheduleJob(bj2, function(){
         bjClose = false;
     });
 
-    rule.hour = 19;
-    rule.minute = 0;
-    let closeCnd = schedule.scheduleJob(rule, function(){
+    //加拿大关闭
+    let cnd1 = new schedule.RecurrenceRule();
+    cnd1.hour = 19;
+    cnd1.minute = 0;
+    schedule.scheduleJob(cnd1, function(){
         cndClose = true;
     });
-    //加拿大关闭开启
-    rule.hour = 20;
-    rule.minute = 0;
-    var openCnd = schedule.scheduleJob(rule, function(){
+    //开启
+    let cnd2 = new schedule.RecurrenceRule();
+    cnd2.hour = 20;
+    cnd2.minute = 0;
+    schedule.scheduleJob(cnd2, function(){
         cndClose = false;
     });
     //============================//
