@@ -13,6 +13,14 @@ const automationUsers = ['百发百中','老李','清水','小磊哥','王无敌
     '天泪子','无崖','风','夜叉','玩一手','大胸妹','心情','呦哟','冯志华','萨拉黑哟',
     '雅蠛蝶','校长','就是单点王!','霸主','小弟弟','兵封','雷子','PDD','110克星','小雪'];
 
+const automationMoney = [
+    1,2,5,5,5,8,12,
+    10,10,10,10,20,20,20,20,
+    25,25,25,30,30,30,
+    50,50,100,100,120,200,
+    300,500,150,22,28,
+];
+
 //@todo 定时器 加拿大 7点到8点 停盘,,北京 0点 到 12点停盘
 let socketFunc =  (io)=>{
     //当前在线人数
@@ -84,10 +92,10 @@ let socketFunc =  (io)=>{
 
     const AutomationBet = (timeNum)=>{
         setTimeout(()=>{
-            const userNumber = rnd(0,30);
-            const betTypeNum = rnd(0,10);
-            const moneyNum = rnd(1,200);
-            const number = rnd(1,3);
+            const userNumber = rnd(0, 30);
+            const betTypeNum = rnd(0, 10);
+            const moneyNum = rnd(0, 32);
+            const number = rnd(1, 3);
 
             const bet = {
                 user: {
@@ -96,7 +104,7 @@ let socketFunc =  (io)=>{
                 },
                 playType: 1,
                 type: _lotteryType[betTypeNum],
-                money: moneyNum*10,
+                money: automationMoney[moneyNum]*10,
                 created_at: moment().format('YYYY-MM-DD HH:mm')
             };
 
