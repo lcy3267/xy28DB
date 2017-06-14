@@ -8,7 +8,7 @@ import Client from './client';
 export let dbQuery = (sql, params = []) => {
     let client = new Client();
     return client.query(sql, params).catch(function (error) {
-        console.warn("请求出错啦");
+        console.warn("请求出错啦",error,new Dete());
         return false;
     });;
     /*let result = await client.query(sql, params);

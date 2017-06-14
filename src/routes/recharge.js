@@ -4,7 +4,7 @@ const router = express.Router();
 import {dbQuery, myTransaction} from '../db/index';
 import {responseJSON, formatPage} from '../common/index';
 import { rechargeType, changeType } from '../config/index';
-import { getUserSocket } from '../socket/util';
+import { getUserSocket, getSingleSocket } from '../socket/util';
 import {usersSql, integralChangeSql} from '../db/sql';
 
 
@@ -111,6 +111,10 @@ const recharge = (io)=>{
                 sql: "insert into recharge_integral_record(user_id,money,recharge_type,status) values(?,?,?,?)",
                 params: [user_id, integral, rechargeType.adminInput, 2]
             },
+            {//添加用户消息
+                sql: usersSql.addUserMessage,
+                params: [user_id, '元宝充值成功', `管理员已给您充值${integral}元宝,请注意查收!`],
+            },
         ]);
 
         if(rs){
@@ -119,6 +123,11 @@ const recharge = (io)=>{
             let socket = getUserSocket(io,user_id);
             if(socket){
                 socket.emit('updateIntegral', {integral: integralRs[0].integral});
+            }
+            let clients = io.of('/app').clients().sockets;
+            let socket2 = getSingleSocket(clients,user_id);
+            if(socket2){
+                socket2.emit('newMsg');
             }
         }else{
             responseJSON(undefined);

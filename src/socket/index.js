@@ -213,10 +213,8 @@ let socketFunc =  (io)=>{
     //admin
     io.of('admin').on('connection', (socket)=>{
 
-        console.log('admin user connected');
-
         socket.on('adminLogin', async(data)=>{
-            socket.emit('adminLogin',{test: 'logined'});
+            socket.emit('adminLogin');
         });
 
         //心跳包
@@ -227,7 +225,24 @@ let socketFunc =  (io)=>{
                 socket.emit('palpitation',{result: 'error'})
             }
         });
-        
+    });
+
+    //app
+    io.of('app').on('connection', (socket)=>{
+        let bjClients = io.of('/app').clients().sockets;
+        socket.on('login',({token})=> {
+            validLogin(token, async (err, decode)=>{
+                if(err){
+                    return;
+                }else{
+                    if(socket.user_id) return;
+
+                    socket.user_id = decode.user.user_id;
+
+                    socket.emit('login');
+                }
+            });
+        })
     });
     
     const connection = (socket, path) => {
@@ -343,7 +358,7 @@ let socketFunc =  (io)=>{
             }else{
                 socket.emit('msg', {msg: {err_code: -1}});
             }
-        })
+        });
 
         //心跳包
         socket.on('palpitation', function (){
@@ -364,8 +379,7 @@ let socketFunc =  (io)=>{
                 delete roomInfo[socket.roomNumber][socket.user_id];
 
                 socket.leave(socket.roomNumber);    // 退出房间
-
-                io.of(path).to(socket.roomNumber).emit('logout', {user: loginOutUser});
+                //io.of(path).to(socket.roomNumber).emit('logout', {user: loginOutUser});
             }
         });
     }

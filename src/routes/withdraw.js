@@ -8,6 +8,8 @@ import {responseJSON, formatPage} from '../common/index';
 var {dbQuery, myTransaction} = require('../db/index');
 import {usersSql, integralChangeSql} from '../db/sql';
 import { key, changeType } from '../config/';
+import { getSingleSocket } from '../socket/util';
+
 
 const withdraw = (io)=> {
     //提现记录
@@ -78,6 +80,11 @@ const withdraw = (io)=> {
 
         if(rs){
             responseJSON(res, {rs});
+            let clients = io.of('/app').clients().sockets;
+            let socket = getSingleSocket(clients,user_id);
+            if(socket){
+                socket.emit('newMsg');
+            }
         }else{
             responseJSON(res);
         }

@@ -4,7 +4,7 @@ const router = express.Router();
 import {dbQuery, myTransaction} from '../db/index';
 import {responseJSON, formatPage} from '../common/index';
 import { rechargeType, changeType } from '../config/index';
-import { getUserSocket } from '../socket/util';
+import { getSingleSocket } from '../socket/util';
 import {usersSql, integralChangeSql} from '../db/sql';
 
 const recharge = (io)=>{
@@ -102,6 +102,11 @@ const recharge = (io)=>{
                 if(first_num < 0) {//初级
                     let rs = await doRollback(user_id, rules, 1, -first_num);
                     if(!rs) result = false;
+                    let clients = io.of('/app').clients().sockets;
+                    let socket = getSingleSocket(clients,user_id);
+                    if(socket){
+                        socket.emit('newMsg');
+                    }
                 }
             }
         });

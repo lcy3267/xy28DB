@@ -53,28 +53,25 @@ function GetDateStr(AddDayCount) {
 
 export const getUserSocket =  (io,user_id) => {
 
-    let key = null;
-
     let bjClients = io.of('/bj').clients().sockets;
 
     let cndClients = io.of('/cnd').clients().sockets;
 
-    for(let k of Object.keys(bjClients)){
-        if(bjClients[k].user_id && bjClients[k].user_id == user_id){
-            key = k;
-            break;
-        }
-    }
-
-    for(let k of Object.keys(cndClients)){
-        if(cndClients[k].user_id && cndClients[k].user_id == user_id){
-            key = k;
-            break;
-        }
-    }
-
-    return bjClients[key] || cndClients[key] || null;
+    return getSocket(bjClients,user_id) || getSocket(cndClients,user_id) || null;
 };
+
+export const getSingleSocket = getSocket;
+
+function getSocket(clients, user_id) {
+    let key = null;
+    for(let k of Object.keys(clients)){
+        if(clients[k].user_id && clients[k].user_id == user_id){
+            key = k;
+            break;
+        }
+    }
+    return clients[key];
+}
 
 /**
  * 

@@ -29,6 +29,7 @@ class Transaction {
             _this._connection.query(sql, params, function (error, rows, fields) {
                 if (error) {
                     console.log("executeQueryErr:"+error);
+                    console.log("executeQueryErr:"+(new Dete()));
                     _this._connection.rollback(function () {
                         reject(error);
                     });
