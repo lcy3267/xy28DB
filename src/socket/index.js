@@ -327,7 +327,7 @@ let socketFunc =  (io)=>{
                         socket.roomId, socket.roomLevel, socket.roomType]
                 },
                 {//用户减分
-                    sql: "update users set integral = (integral - ?) where user_id = ?",
+                    sql: "update users set integral = (integral - ?),updated_at = CURRENT_TIMESTAMP where user_id = ?",
                     params: [money, user.user_id]
                 },
                 {//增加用户积分变化记录
