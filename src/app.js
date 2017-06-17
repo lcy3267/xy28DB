@@ -60,7 +60,7 @@ app.use('/users', require('./routes/users'));
 app.use('/gameRules', require('./routes/gameRules')(socket));
 app.use('/bet', require('./routes/bet')(socket));
 app.use('/lottery', require('./routes/lottery'));
-app.use('/system', require('./routes/system'));
+app.use('/system', require('./routes/system')(socket));
 app.use('/recharge', require('./routes/recharge')(socket));
 app.use('/withdraw', require('./routes/withdraw')(socket));
 app.use('/message', require('./routes/message')(socket));

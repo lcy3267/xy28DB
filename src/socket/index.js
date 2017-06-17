@@ -308,6 +308,12 @@ let socketFunc =  (io)=>{
 
             let rs = await dbQuery('select * from users where user_id = ?', [user.user_id]);
 
+            let room = await dbQuery('select * from rooms where id = ?', [socket.roomId]);
+
+            if(room[0].status == -1){
+                return;
+            }
+
             if(rs[0].integral < money){
                 return;
             }
@@ -352,6 +358,11 @@ let socketFunc =  (io)=>{
         //监听用户发送信息
         socket.on('msg',  async ({msg})=>{
             const users = await dbQuery("select * from users where user_id = ?",[msg.user.user_id]);
+            let room = await dbQuery('select * from rooms where id = ?', [socket.roomId]);
+            if(room[0].is_speak == -1){
+                return;
+            }
+
             if(users[0].has_speak == 1){
                 msg.err_code = 0;
                 io.of(path).to(socket.roomNumber).emit('msg', {msg});
