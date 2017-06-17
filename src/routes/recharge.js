@@ -29,6 +29,28 @@ const recharge = (io)=>{
         }
     });
 
+    //app 用户充值记录
+    router.get('/rechargeRecord', async (req, res, next) => {
+
+        const {user_id} = req.loginUser;
+
+        const {pageIndex, pageSize} = req.query;
+
+        const sql = formatPage('select * from recharge_integral_record where status != -1 and user_id = ?',
+            pageIndex, pageSize);
+
+        let records = await dbQuery(sql, [user_id]);
+
+        let rs = await dbQuery('select count(id) as count from recharge_integral_record' +
+            ' where status != -1 and user_id = ?',[user_id]);
+
+        if(records){
+            responseJSON(res, {records, count: rs[0].count});
+        }else{
+            responseJSON(res)
+        }
+    });
+
     //获取收款账号
     router.get('/getCollectionAccounts', async (req, res, next) => {
         let accounts = await dbQuery('select * from collection_accounts where status = 1');
