@@ -6,8 +6,8 @@ export let key = {
 export let mysqlConfig = {
     host: 'localhost',//39.108.105.220
     user: 'root',
-    password: '1234',//服务器密码
-    //password: 'yuan3267',
+    //password: '1234',//服务器密码
+    password: 'yuan3267',
     database: 'xy28',
     port: 3306
 }

@@ -28,16 +28,14 @@ const gameRules = (io)=>{
         rows?responseJSON(res, {rs: rows}):responseJSON(res);
     });
 
-    //修改赔率
-    router.put('/admin/updateRate',async function (req, res, next) {
-        let {id, rate} = req.body;
-        let rows = await dbQuery('update game_rules set rate = ? where id = ?',[rate, id]);
-        if(rows){
-            responseJSON(res, {});
-            emitAll(io, 'updateRules',{});
-        }else{
-            responseJSON(res);
-        }
+    //修改游戏配戏
+    router.put('/admin/updateGameRules',async function (req, res, next) {
+        let {type, name, rates, id} = req.body;
+        const field = type == 1 ? 'combine_rates' : 'single_point_rates';
+        rates = type == 1 ? JSON.stringify(rates) : rates;
+        let rows = await dbQuery(`update game_rules set name = ?,${field} = ? where id = ?`,[name, rates, id]);
+
+        rows?responseJSON(res, {rs: rows}):responseJSON(res);
     });
     
     router.put('/admin/updateRoomGameRule',async function (req, res, next) {

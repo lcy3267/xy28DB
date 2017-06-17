@@ -33,10 +33,25 @@ const system = (io)=>{
 
     //新增回水规则
     router.post('/admin/addRollback',async function (req, res, next) {
-        const {name, levels, rates, ruleLevel} = req.body;
+        const {name, levels, rates, rule_level} = req.body;
 
         let rows = await dbQuery("insert into rollback_rules(name,rule_level,level_1,level_2,level_3,level_4,rate_1,rate_2,rate_3,rate_4) values(?,?,?,?,?,?,?,?,?,?)",
-            [name, +ruleLevel, levels[0], levels[1], levels[2], levels[3], rates[0], rates[1], rates[2], rates[3]]);
+            [name, +rule_level, levels[0], levels[1], levels[2], levels[3], rates[0], rates[1], rates[2], rates[3]]);
+
+        if(rows){
+            responseJSON(res, {rs: rows});
+        }else{
+            responseJSON(res);
+        }
+    });
+
+    //新增回水规则
+    router.put('/admin/updateRollback',async function (req, res, next) {
+        const {id, name, levels, rates, rule_level} = req.body;
+
+        let rows = await dbQuery("update rollback_rules set name = ?,rule_level = ?,level_1 = ?,level_2 = ?," +
+            "level_3 = ?,level_4 = ?,rate_1 = ?,rate_2 = ?,rate_3 = ?,rate_4 = ? where id = ?",
+            [name, +rule_level, levels[0], levels[1], levels[2], levels[3], rates[0], rates[1], rates[2], rates[3], id]);
 
         if(rows){
             responseJSON(res, {rs: rows});
