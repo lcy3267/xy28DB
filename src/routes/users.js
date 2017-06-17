@@ -20,7 +20,7 @@ router.get('/admin/list', async (req, res, next) => {
         '(SELECT COUNT(bottom_pour_id) from bottom_pour_record where user_id = u.user_id and status = 1) as bottom_num,' +
         '(SELECT sum(bottom_pour_money) from bottom_pour_record where user_id = u.user_id and status = 1) as sub_integral,' +
         '(select sum(win_integral) from bottom_pour_record where user_id = u.user_id and status = 1) as win_integral'+
-        ' from users u where u.user_type = 2 and u.status = 1'+likeSql, pageIndex, pageSize);
+        ' from users u where u.user_type = 2 and u.status = 1 order by updated_at desc'+likeSql, pageIndex, pageSize);
 
     let users = await dbQuery(sql);
 
