@@ -229,7 +229,6 @@ let socketFunc =  (io)=>{
 
     //app
     io.of('app').on('connection', (socket)=>{
-        let bjClients = io.of('/app').clients().sockets;
         socket.on('login',({token})=> {
             validLogin(token, async (err, decode)=>{
                 if(err){
@@ -242,7 +241,16 @@ let socketFunc =  (io)=>{
                     socket.emit('login');
                 }
             });
-        })
+        });
+
+        //心跳包
+        socket.on('palpitation', function (){
+            if(socket.user_id){
+                socket.emit('palpitation',{result: 'success'})
+            }else{
+                socket.emit('palpitation',{result: 'error'})
+            }
+        });
     });
     
     const connection = (socket, path) => {

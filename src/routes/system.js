@@ -26,7 +26,7 @@ const system = (io)=>{
     });
 
     //回水规则列表
-    router.get('/admin/rollbackRules',async function (req, res, next) {
+    router.get('/rollbackRules',async function (req, res, next) {
         let rows = await dbQuery("select * from rollback_rules where status != -1");
         responseJSON(res, {rules: rows});
     });
@@ -45,7 +45,7 @@ const system = (io)=>{
         }
     });
 
-    //新增回水规则
+    //修改回水规则
     router.put('/admin/updateRollback',async function (req, res, next) {
         const {id, name, levels, rates, rule_level} = req.body;
 

@@ -16,6 +16,20 @@ Array.prototype.getSum = function () {
     return sum;
 }
 
+//乘法
+Number.prototype.mul = function (arg) {
+    var m = 0, s1 = this.toString(), s2 = arg.toString();
+    try {
+        m += s1.split(".")[1].length
+    } catch (e) {
+    }
+    try {
+        m += s2.split(".")[1].length
+    } catch (e) {
+    }
+    return Number(s1.replace(".", "")) * Number(s2.replace(".", "")) / Math.pow(10, m)
+};
+
 function myPromise(promise) {
     return new Promise((resolve, reject) => {
         //成功
@@ -100,6 +114,7 @@ export let loadLotteryRecord = async(type) => {
             sum,
             place: 2,
         }
+
         //开奖结果
         obj.result = formatResult(sum);
     }
@@ -116,6 +131,7 @@ export let loadLotteryRecord = async(type) => {
         obj.err_code = 1002; //未结算
     }
 
+
     return obj;
 };
 
@@ -125,7 +141,6 @@ export let clearingIntegral = async(placeType = 1) => {
     let result = await loadLotteryRecord(placeType);
 
     if(result && result.err_code == 0 || result.err_code == 1002){
-        clearing.users = {};
         let rs = await clearing(result);
         return rs;
     }
@@ -136,35 +151,64 @@ export let clearingIntegral = async(placeType = 1) => {
 //积分结算
 async function clearing(result) {
     //获取当前期数下注记录
-    let records = await dbQuery(bottomPourSql.querySerialRecord, result.serial_number);
+    let records = await dbQuery('select group_concat(bottom_pour_id) ids,bottom_pour_type,user_id,sum(bottom_pour_money) bottom_pour_money,' +
+        'room_id,bottom_pour_number,play_type' +
+        ' from bottom_pour_record WHERE status = 1 and is_winning = 0' +
+        ' and serial_number = ? group by' +
+        ' user_id,room_id,bottom_pour_type,bottom_pour_number,play_type',
+        [result.serial_number]);
 
+    let clearingUsers = {};
     //遍历下注记录
     for (var record of records) {
         const {user_id, bottom_pour_money, bottom_pour_type, play_type, bottom_pour_number, room_id} = record;
 
         //添加结算用户
-        if (!clearing.users[user_id]) {
+        if (!clearingUsers.hasOwnProperty(user_id)) {
             let user = {
                 user_id: user_id,
                 integral: 0,
             }
-            clearing.users[user_id] = user;
+            clearingUsers[user_id] = user;
         }
+
 
         let hasWinning = false;
         let money = +bottom_pour_money; // 下注金额
         let integral = 0; // 赢取金额
-
         if(play_type == 1 && result.result.indexOf(bottom_pour_type) > -1){//大小单双,极大,极小
             hasWinning = true;
 
             //游戏规则 赔率
-            let game_rules = await dbQuery('select g.combine_rates from game_rules g left join rooms r on r.id = ? where g.id = r.rule_combine_id',[room_id]);
+            let other = false;
+            if(result.sum == 13 || result.sum == 14){
+                let filed = 'special_game_rule_id';
+                if(bottom_pour_type.indexOf('_') > -1){
+                    filed = 'combine_special_rule_id';
+                }
+                let game_rules = await dbQuery(`select g.* from special_game_rules g left join rooms r on r.id = ? where g.id = r.${filed}`,[room_id]);
+                if(game_rules.length == 0){
+                    return;
+                };
+                const rule = game_rules[0];
+                other = true;
+                let rate = 2;
+                if(money <= rule.level_2){
+                    rate = rule.rate_1;
+                }else if(money < rule.level_3){
+                    rate = rule.rate_2;
+                }else{
+                    rate = rule.rate_3;
+                }
+                integral = money.mul(rate); // 获得金额
+            }
+            if(!other){
+                let game_rules = await dbQuery('select g.combine_rates from game_rules g left join rooms r on r.id = ? where g.id = r.rule_combine_id',[room_id]);
+                let rule = JSON.parse(game_rules[0].combine_rates);
+                let rate = rule[bottom_pour_type].value;
+                integral = money * rate; // 获得金额
+            }
 
-            let rule = JSON.parse(game_rules[0].combine_rates);
-            let rate = rule[bottom_pour_type].value;
-
-            integral = money * rate; // 赢取金额
 
         }else if(play_type == 2 && bottom_pour_number == result.sum){//单点
             hasWinning = true;
@@ -179,11 +223,11 @@ async function clearing(result) {
 
             integral = money * (+rules[bottom_pour_number]);
         }
-
+        
         if(hasWinning){
             //实际赢取积分(减去本金)
             let winIntegral = integral - money;
-            clearing.users[user_id].integral += winIntegral;
+            clearingUsers[user_id].integral += winIntegral;
 
             //中奖 修改相应数据
             await myTransaction([
@@ -192,8 +236,8 @@ async function clearing(result) {
                     params: [integral, user_id],
                 },
                 {
-                    sql: "update bottom_pour_record set is_winning = ?,win_integral = ? where bottom_pour_id = ?",
-                    params: [1, winIntegral, record.bottom_pour_id],
+                    sql: `update bottom_pour_record set is_winning = ?,win_integral = ? where bottom_pour_id in (${record.ids})`,
+                    params: [1, winIntegral],
                 },
                 {
                     sql: integralChangeSql.insert,
@@ -201,21 +245,17 @@ async function clearing(result) {
                 },
             ]);
         }else{
-            clearing.users[user_id].integral -= money;
+            clearingUsers[user_id].integral -= money;
 
             //将用户下注记录 变为已 未中奖
-            await dbQuery("update bottom_pour_record set is_winning = ?,win_integral = ? where bottom_pour_id = ?",
-                [-1, -money, record.bottom_pour_id]);
+            await dbQuery(`update bottom_pour_record set is_winning = ?,win_integral = ? where bottom_pour_id in (${record.ids})`,
+                [-1, -money]);
         }
-
     }
 
-    if (records.length != 0) {
-        return await clearing(result);
-    } else {
-        await dbQuery("update lottery_record set is_open = 1,updated_at = now() where serial_number = ?", [result.serial_number]);
-        return {err_code: 0, result, clearUsers: clearing.users}
-    }
+    await dbQuery("update lottery_record set is_open = 1,updated_at = now() where serial_number = ?", [result.serial_number]);
+
+    return {err_code: 0, result, clearUsers: clearingUsers}
 }
 
 function formatResult(sum) {
