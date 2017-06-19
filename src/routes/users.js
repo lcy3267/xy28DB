@@ -133,6 +133,34 @@ router.get('/getUserInfo', async (req, res, next) => {
     }
 });
 
+router.put('/updateUserLogo', async (req, res, next) => {
+    const {user_id} = req.loginUser;
+    const {logoPath} = req.body;
+
+    let rows = await dbQuery('update users set avatar_picture_url = ? where user_id = ?',
+        [logoPath, user_id]);
+
+    if(rows){
+        responseJSON(res, {user: rows[0]});
+    }else{
+        responseJSON(res);
+    }
+});
+
+router.put('/updateUserName', async (req, res, next) => {
+    const {user_id} = req.loginUser;
+    const {name} = req.body;
+
+    let rows = await dbQuery('update users set name = ? where user_id = ?',
+        [name, user_id]);
+
+    if(rows){
+        responseJSON(res, {user: rows[0]});
+    }else{
+        responseJSON(res);
+    }
+});
+
 // 绑定银行卡
 router.post('/bindBank', async (req, res, next) => {
     const {user_id} = req.loginUser;
