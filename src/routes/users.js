@@ -14,17 +14,17 @@ router.get('/admin/list', async (req, res, next) => {
 
     const {pageIndex, pageSize, searchKey} = req.query;
 
-    const likeSql = searchKey? ` and account like '%${searchKey}%' or name like '%${searchKey}%'`:'';
+    const likeSql = searchKey? ` and u.account like '%${searchKey}%' or u.name like '%${searchKey}%'`:'';
 
     const sql = formatPage('SELECT u.*,' +
         '(SELECT COUNT(bottom_pour_id) from bottom_pour_record where user_id = u.user_id and status = 1) as bottom_num,' +
         '(SELECT sum(bottom_pour_money) from bottom_pour_record where user_id = u.user_id and status = 1) as sub_integral,' +
         '(select sum(win_integral) from bottom_pour_record where user_id = u.user_id and status = 1) as win_integral'+
-        ' from users u where u.user_type = 2 and u.status = 1 order by updated_at desc'+likeSql, pageIndex, pageSize);
+        ' from users u where u.user_type = 2 and u.status = 1 '+likeSql+' order by updated_at desc', pageIndex, pageSize);
 
     let users = await dbQuery(sql);
 
-    let rs = await dbQuery('select count(user_id) as count from users where user_type = 2 and status = 1');
+    let rs = await dbQuery('select count(user_id) as count from users u where user_type = 2 and status = 1'+likeSql);
 
     if(users){
         responseJSON(res, {users, count: rs[0].count});
@@ -205,6 +205,46 @@ router.put('/admin/updateUserBottom', async (req, res, next) => {
     let rows = await dbQuery('update users set can_bottom = ? where user_id = ?',[can_bottom,user_id]);
 
     responseJSON(res, {rs: rows});
+});
+
+router.get('/integralChangeRecords', async function (req, res) {
+    const {user_id} = req.loginUser;
+    const {pageIndex, pageSize} = req.query;
+
+    const sql = formatPage('select * from user_integral_change where user_id = ? and status != -1 order by' +
+        ' created_at desc',
+        pageIndex, pageSize);
+
+    let rs = await dbQuery(sql,[user_id]);
+
+    if(rs){
+        responseJSON(res, {records: rs});
+    }else{
+        responseJSON(res)
+    }
+});
+
+router.get('/admin/integralChangeRecords', async function (req, res) {
+    const {pageIndex, pageSize, user_id} = req.query;
+
+    const userSql = user_id? ` and u.user_id = ${user_id}`:'';
+
+    const sql = formatPage('select c.*,u.account account,u.name name from' +
+        ' user_integral_change c left join users u on' +
+        ' u.user_id = c.user_id where c.status != -1'+userSql+' order by' +
+        ' c.created_at desc',
+        pageIndex, pageSize);
+
+    let rs = await dbQuery(sql,[user_id]);
+
+    let countRs = await dbQuery('select count(change_id) as count from user_integral_change u' +
+        ' where status != -1'+userSql);
+
+    if(rs){
+        responseJSON(res, {records: rs, count: countRs[0].count});
+    }else{
+        responseJSON(res)
+    }
 });
 
 

@@ -76,7 +76,8 @@ const recharge = (io)=>{
 
         const record = await dbQuery('select money,user_id from recharge_integral_record where id = ?',[id]);
 
-        const {money: integral, user_id} = record[0];
+        let {money: integral, user_id} = record[0];
+        integral = parseInt(integral);
 
         let rs = await myTransaction([
             {//用户改变积分
@@ -85,7 +86,7 @@ const recharge = (io)=>{
             },
             {//增加积分变动记录
                 sql: integralChangeSql.insert,
-                params: [integral, user_id, changeType.input]
+                params: [user_id, integral, changeType.input]
             },
             {//改变该条记录状态
                 sql: "update recharge_integral_record set status = 2,updated_at = now() where id = ?",

@@ -97,6 +97,23 @@ const system = (io)=>{
         rows?responseJSON(res, {rs: rows}):responseJSON(res);
     });
 
+    //下注限制
+    router.get('/admin/betLimit',async function (req, res, next) {
+        let rows = await dbQuery("select * from game_limit where status != -1");
+        rows?responseJSON(res, {limit: rows[0]}):responseJSON(res);
+    });
+
+    //下注限制
+    router.put('/admin/saveBetLimit',async function (req, res, next) {
+        const {id, min_limit, sum_limit, common, combine, extreme, point} = req.body;
+
+        let rows = await dbQuery("update game_limit set min_limit = ?,common = ?,combine = ?," +
+            "extreme = ?,sum_limit = ?,point = ?,updated_at = CURRENT_TIMESTAMP where id = ?",
+            [min_limit, common, combine, extreme, sum_limit, point, id]);
+
+        rows?responseJSON(res, {rs: rows}):responseJSON(res);
+    });
+
     return router;
 }
 

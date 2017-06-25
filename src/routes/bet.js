@@ -25,7 +25,7 @@ const bet = (io)=> {
 
         const likeSql = user_id? ` and u.user_id = ${user_id}`:'';
 
-        const sql = formatPage(`select b.*,u.account user_account from users u
+        const sql = formatPage(`select b.*,u.account user_account, u.name user_name from users u
             left join bottom_pour_record b on b.user_id = u.user_id ${likeSql} where b.status = 1 order by b.created_at desc`,
             pageIndex, pageSize);
 
@@ -78,24 +78,7 @@ const bet = (io)=> {
             responseJSON(res);
         }
     });
-
-
-    router.get('/integralChangeRecords', async function (req, res) {
-        const {user_id} = req.loginUser;
-        const {pageIndex, pageSize} = req.query;
-
-        const sql = formatPage('select * from user_integral_change where user_id = ? and status != -1 order by' +
-            ' created_at desc',
-            pageIndex, pageSize);
-
-        let rs = await dbQuery(sql,[user_id]);
-
-        if(rs){
-            responseJSON(res, {records: rs});
-        }else{
-            responseJSON(res)
-        }
-    });
+    
 
     router.get('/userBetRecords', async function (req, res) {
         const {user_id} = req.loginUser;

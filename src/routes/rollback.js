@@ -75,8 +75,8 @@ const recharge = (io)=>{
                     },
                     {//
                         sql:`update bottom_pour_record set is_rollback = 2 where user_id = ?
-                         and created_at like '${date}%'`,
-                        params: [user_id],
+                         and created_at like '${date}%' and room_level = ?`,
+                        params: [user_id, roomLevel],
                     },
                     {//添加用户消息
                         sql: usersSql.addUserMessage,
@@ -101,6 +101,24 @@ const recharge = (io)=>{
             if(win_integral < 0){
                 if(first_num < 0) {//初级
                     let rs = await doRollback(user_id, rules, 1, -first_num);
+                    if(!rs) result = false;
+                    let clients = io.of('/app').clients().sockets;
+                    let socket = getSingleSocket(clients,user_id);
+                    if(socket){
+                        socket.emit('newMsg');
+                    }
+                }
+                if(middle_num < 0){
+                    let rs = await doRollback(user_id, rules, 2, -middle_num);
+                    if(!rs) result = false;
+                    let clients = io.of('/app').clients().sockets;
+                    let socket = getSingleSocket(clients,user_id);
+                    if(socket){
+                        socket.emit('newMsg');
+                    }
+                }
+                if(higher_num < 0){
+                    let rs = await doRollback(user_id, rules, 3, -higher_num);
                     if(!rs) result = false;
                     let clients = io.of('/app').clients().sockets;
                     let socket = getSingleSocket(clients,user_id);
@@ -133,17 +151,17 @@ const recharge = (io)=>{
 
 
 async function rollbackUsers(date,user_id) {
-
-    const filter = `and user_id = u.user_id and status = 1 and is_rollback = 1 and created_at like '${date}%'`;
+    //and is_rollback = 1
+    const filter = `and user_id = u.user_id and status = 1 and created_at like '${date}%'`;
 
     const roomSql = (level,key)=>`(select sum(win_integral) from bottom_pour_record where
          room_level = ${level} ${filter}) as ${key},`;
 
-    const combineSql = `(select count(user_id) from bottom_pour_record where
-         bottom_pour_type like '%/_%' escape '/' ${filter}) combines,`;
+    const combineSql = `(select sum(bottom_pour_money) from bottom_pour_record where
+         bottom_pour_type like '%/_%' escape '/' ${filter}) combine_integral,`;
 
-    const pointSql = `(select count(user_id) from bottom_pour_record where
-         bottom_pour_type = 'point' ${filter}) point,`;
+    const pointSql = `(select sum(bottom_pour_money) from bottom_pour_record where
+         bottom_pour_type = 'point' ${filter}) point_integral,`;
 
     const placeSql = (type,key)=>`(select sum(bottom_pour_money) from bottom_pour_record 
         where lottery_place_type = ${type} ${filter}) ${key},`;
@@ -155,8 +173,8 @@ async function rollbackUsers(date,user_id) {
         roomSql(2,'middle_num')+roomSql(3,'higher_num') +
         'count(b.serial_number) num' +
         ' from bottom_pour_record b left join users u on u.user_id = b.user_id' +
-        ' where b.status = 1 and b.is_rollback = 1 and b.created_at like "'+date+'%" group by user_id ');
-
+        ' where b.status = 1 and b.created_at like "'+date+'%" group by user_id ');
+        //b.is_rollback = 1 and
     return users;
 }
 

@@ -171,7 +171,7 @@ let socketFunc =  (io)=>{
                 cndOpening = true;
             }else{
                 if(time == 30){
-                    io.of(cndPath).emit('systemMsg', {content: '已封盘,下注结果以系统开机为准'});
+                    io.of(cndPath).emit('systemMsg', {content: '已封盘,下注结果以系统录入为准,如有疑问,请及时联系客服'});
                 }
                 if(time <= 210 && cndOpening){
                     sendOpenResult(cndType);
@@ -314,25 +314,69 @@ let socketFunc =  (io)=>{
         socket.on('bet', async(bet)=> {
             let {user, money, type, number, serial_number, playType} = bet;
 
-            let rs = await dbQuery('select * from users where user_id = ?', [user.user_id]);
+            if(playType == 2 && !type) type = 'point';
+
+            money = parseInt(money);
+
+            let dbUser = await dbQuery('select * from users where user_id = ?', [user.user_id]);
 
             let room = await dbQuery('select * from rooms where id = ?', [socket.roomId]);
+
+            //查询用户已下注金额
+            const userBetArr = await dbQuery('select * from bottom_pour_record where user_id = ?' +
+                ' and serial_number = ? and status = 1', [user.user_id, serial_number]);
+
+            //获取总注, 和 用户下注类型积分
+            let sum = 0;
+            let targetIntegral = 0;
+
+            let limit = await dbQuery("select * from game_limit where status != -1");
+            limit = limit[0];
+
+            if(userBetArr.length != 0){
+                userBetArr.map((bet)=>{
+                    sum += bet.bottom_pour_money;
+                    if(bet.bottom_pour_type == type){
+                        targetIntegral += bet.bottom_pour_money;
+                    }
+                });
+            }
+
+            sum += money;
+            //当前下注类型限制
+            targetIntegral += money;
+
+            let targetLimit = 0;
+            if(type.indexOf('_') > -1)//组合
+                targetLimit = limit.combine;
+            else if(type == 'point')
+                targetLimit = limit.point;
+            else if(type == 'max' || type == 'min')
+                targetLimit = limit.extreme;
+            else
+                targetLimit = limit.common;
+
+            if(sum > limit.sum_limit){//总注超标
+                socket.emit('systemMsg', {content: '下注无效, 下注总额不能超过 '+limit.sum_limit});
+                return;
+            }else if(targetIntegral > targetLimit){
+                socket.emit('systemMsg', {content: '下注无效, 该下注类型下注总额不能超过 '+targetLimit});
+                return;
+            }
 
             if(room[0].status == -1){
                 return;
             }
 
-            if(rs[0].integral < money){
+            if(dbUser[0].integral < money){
                 return;
             }
 
             //禁止下注
-            if(rs[0].can_bottom == -1){
+            if(dbUser[0].can_bottom == -1){
                 io.of(path).to(socket.roomNumber).emit('bet', {err_code: -1});
                 return;
             }
-
-            if(playType == 2 && !type) type = 'point';
 
             let results = await myTransaction([
                 {//下注
